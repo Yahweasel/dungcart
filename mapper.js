@@ -79,6 +79,8 @@ function newFloor(startY, startX) {
 
 // Move to another room, digging if asked
 function move(dir, dig) {
+    var row = floor[curY] || {};
+    var room = row[curX] || {};
     var ret = false;
     var nextZ = curZ + dir.z;
     var nextY = curY + dir.y;
@@ -120,7 +122,10 @@ function move(dir, dig) {
         // Set its opposite exit
         if (dir === u) nextRoom.d = 1;
         else if (dir === d) {} // maybe pitfall
-        else nextRoom[rotate(dir, 2).k] = 1;
+        else {
+            room[dir.k] = 1;
+            nextRoom[rotate(dir, 2).k] = 1;
+        }
     }
 
     return ret;
@@ -276,12 +281,12 @@ function main(data) {
 
         case "x":
             switch (data) {
-                case "w": if (move(curDir, true)) curMode = "d"; save(); break;
+                case "w": move(curDir, true); save(); break;
                 case "a": curDir = rotate(curDir, -1); break;
                 case "s": curDir = rotate(curDir, 2); break;
                 case "d": curDir = rotate(curDir, 1); break;
-                case "r": if (move(u, true)) curMode = "d"; clear(); save(); break;
-                case "f": if (move(d, true)) curMode = "d"; clear(); save(); break;
+                case "r": move(u, true); clear(); save(); break;
+                case "f": move(d, true); clear(); save(); break;
                 case "z": delete floor[curY][curX]; save(); break;
                 case " ": curMode = "d"; break;
                 case "t": curMode = "r"; break;
