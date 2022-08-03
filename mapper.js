@@ -254,6 +254,18 @@ function cursor(on) {
     wr("\x1b[?25" + (on?"h":"l"));
 }
 
+// Set or unset bold
+function bold(on) {
+    wr("\x1b[" + (on?"1":"0") + "m");
+}
+
+// Block drawing characters
+const fullBlock = "\u2588",
+      upTriangle = "\u25b2",
+      rightTriangle = "\u25b6",
+      downTriangle = "\u25bc",
+      leftTriangle = "\u25c0";
+
 // Our main input function
 function main(data) {
     var curRoom = {};
@@ -375,93 +387,131 @@ function main(data) {
     cln();
     wr("Floor " + curZ + "\n");
     var prevRow = {};
-    for (var y = minY; y <= maxY; y++) {
-        var row = floor[y] || {};
+    for (let y = minY; y <= maxY; y++) {
+        let row = floor[y] || {};
 
-        // Any north paths first
-        wr(" ");
-        for (var x = minX; x <= maxX; x++) {
-            var prevRoom = prevRow[x] || {};
-            var room = row[x] || {};
+        // North paths first
+        for (let x = minX; x <= maxX; x++) {
+            let room = row[x] || {};
+            let nRoom = prevRow[x] || {};
+            let eRoom = row[x+1] || {};
+            let neRoom = prevRow[x+1] || {};
+
+            color(7);
+
+            // NW tile
+            if (x === minX) {
+                let wRoom = row[x-1] || {};
+                let nwRoom = prevRow[x-1] || {};
+                if (room.n && nRoom.s &&
+                    room.w && wRoom.e &&
+                    nRoom.w && nwRoom.e) {
+                    wr(fullBlock);
+                } else {
+                    wr(" ");
+                }
+            }
+
+            // N tile
             if (room.n) {
-                if (prevRoom.s)
-                    wr("|");
-                else
-                    wr("^");
-            } else if (prevRoom.s)
-                wr("v");
-            else
+                wr(nRoom.s ? fullBlock : upTriangle);
+            } else if (nRoom.s) {
+                wr(downTriangle);
+            } else {
                 wr(" ");
+            }
 
+            // NE tile indicates extra state
+            if (room.n && nRoom.s &&
+                room.e && eRoom.w &&
+                nRoom.e && neRoom.w &&
+                eRoom.n && neRoom.s) {
+                color(2, 7);
+            } else {
+                color(62, 0);
+            }
             if (room.a) {
-                if (room.u || room.d)
-                    wr("!");
-                else
-                    wr("*");
+                if (room.u || room.d) {
+                    wr("*" /* too much going on */);
+                } else {
+                    wr("\u25a4" /* note */);
+                }
             } else if (room.u) {
                 if (room.d)
-                    wr("L");
+                    wr("\u2195" /* ^v */);
                 else
-                    wr("U");
+                    wr("\u2191" /* ^ */);
             } else if (room.d) {
                 if (room.l)
-                    wr("D");
+                    wr("\u2913" /* v trap */);
                 else
-                    wr("d");
-            } else
+                    wr("\u2193" /* v */);
+            } else {
                 wr(" ");
+            }
         }
         cln();
         wr("\n");
 
         // Now the row of rooms itself
-        var prevRoom = {};
-        for (var x = minX; x <= maxX; x++) {
-            var room = row[x] || {};
-            if (room.w) {
-                if (prevRoom.e)
-                    wr("-");
-                else
-                    wr("<");
-            } else if (prevRoom.e)
-                wr(">");
-            else
-                wr(" ");
-            if (y == curY && x == curX) {
-                curRoom = room;
-                color(1);
-                if (curMode === "r")
-                    wr("@");
-                else switch (curDir.k) {
-                    case "n": wr("^"); break;
-                    case "e": wr(">"); break;
-                    case "s": wr("v"); break;
-                    case "w": wr("<"); break;
-                    default:  wr("@");
+        for (let x = minX; x <= maxX; x++) {
+            let room = row[x] || {};
+            let eRoom = row[x+1] || {};
+
+            if (x === minX) {
+                let wRoom = row[x-1] || {};
+                color(7);
+                if (room.w) {
+                    wr(wRoom.e ? fullBlock : leftTriangle);
+                } else if (wRoom.e) {
+                    wr(rightTriangle);
+                } else {
+                    wr(" ");
                 }
-                color();
-            } else if (row[x])
-                wr(".");
-            else
+            }
+
+            color(1, row[x] ? 67 : 0);
+            if (y === curY && x === curX) {
+                // This is our current room, so indicate it
+                curRoom = room;
+                if (curMode === "r")
+                    wr("\u25cf" /* @ */);
+                else switch (curDir.k) {
+                    case "n": wr("\u25b4" /* ^ */); break;
+                    case "e": wr("\u25b8" /* > */); break;
+                    case "s": wr("\u25be" /* v */); break;
+                    case "w": wr("\u25c2" /* < */); break;
+                    default:  wr("\u25cf" /* @ */);
+                }
+
+            } else {
                 wr(" ");
-            prevRoom = room;
+
+            }
+
+            color(7);
+            if (room.e) {
+                wr(eRoom.w ? fullBlock : rightTriangle);
+            } else if (eRoom.w) {
+                wr(leftTriangle);
+            } else {
+                wr(" ");
+            }
         }
-        if (prevRoom.e)
-            wr(">");
-        else
-            wr(" ");
         cln();
         wr("\n");
 
         if (y === maxY) {
             // We need to draw any southern exits
+            color(7);
             wr(" ");
-            for (var x = minX; x <= maxX; x++) {
-                var room = row[x] || {};
+            for (let x = minX; x <= maxX; x++) {
+                let room = row[x] || {};
                 if (room.s)
-                    wr("v ");
+                    wr(downTriangle);
                 else
-                    wr("  ");
+                    wr(" ");
+                wr(" ");
             }
             cln();
             wr("\n");
@@ -472,6 +522,7 @@ function main(data) {
 
     // Write anything about the current room
     cln();
+    color();
     if (curRoom.a)
         wr("Note: " + curRoom.a);
     wr("\n");
