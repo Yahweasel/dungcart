@@ -14,19 +14,19 @@ if (process.argv.length < 3) {
 }
 
 // We want raw input
-var stdin = process.stdin;
+const stdin = process.stdin;
 stdin.setRawMode(true);
 stdin.resume();
 stdin.setEncoding("utf8");
 
-var stdinBuffer = [];
-var stdinThen = null;
+let stdinBuffer = [];
+let stdinThen = null;
 
 function stdinHandler(data) {
-    for (var di = 0; di < data.length; di++) {
+    for (let di = 0; di < data.length; di++) {
         stdinBuffer.push(data[di]);
         if (stdinThen) {
-            var then = stdinThen;
+            const then = stdinThen;
             stdinThen = null;
             then(stdinBuffer.shift());
         }
@@ -49,8 +49,8 @@ function wr(text) {
 }
 
 // Input our map file
-var mapFile = process.argv[2];
-var map = {};
+let mapFile = process.argv[2];
+let map = {};
 
 try {
     map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
@@ -61,11 +61,11 @@ function save() {
     fs.writeFileSync(mapFile, JSON.stringify(map));
 }
 
-var curZ = 1, curY = 0, curX = 0, curMode = "x", curDir = n;
+let curZ = 1, curY = 0, curX = 0, curMode = "x", curDir = n;
 
 // Create a new floor from scratch
 function newFloor(startY, startX) {
-    var floor = {
+    let floor = {
         min: startY,
         max: startY
     };
@@ -79,12 +79,12 @@ function newFloor(startY, startX) {
 
 // Move to another room, digging if asked
 function move(dir, dig) {
-    var row = floor[curY] || {};
-    var room = row[curX] || {};
-    var ret = false;
-    var nextZ = curZ + dir.z;
-    var nextY = curY + dir.y;
-    var nextX = curX + dir.x;
+    let row = floor[curY] || {};
+    let room = row[curX] || {};
+    let ret = false;
+    let nextZ = curZ + dir.z;
+    let nextY = curY + dir.y;
+    let nextX = curX + dir.x;
 
     // Digging up and down is quite different
     if (dir.z !== 0) {
@@ -110,11 +110,11 @@ function move(dir, dig) {
         if (nextY < floor.min) floor.min = nextY;
         if (nextY > floor.max) floor.max = nextY;
     }
-    var nextRow = floor[nextY];
+    let nextRow = floor[nextY];
 
     if (!nextRow[nextX]) {
         if (!dig) return false;
-        var nextRoom = nextRow[nextX] = {};
+        let nextRoom = nextRow[nextX] = {};
         if (nextX < nextRow.min) nextRow.min = nextX;
         if (nextX > nextRow.max) nextRow.max = nextX;
         ret = true;
@@ -133,8 +133,8 @@ function move(dir, dig) {
 
 // Toggle an exit in this direction
 function toggleExit(dir) {
-    var row = floor[curY] || {};
-    var room = row[curX] || {};
+    let row = floor[curY] || {};
+    let room = row[curX] || {};
     if (dir === d) {
         if (room.d) {
             if (room.t) {
@@ -159,13 +159,13 @@ if (!map[curZ]) {
     curMode = "d";
 }
 
-var floor = map[curZ];
-var minX, maxX;
+let floor = map[curZ];
+let minX, maxX;
 
 // Calculate the X range for the current floor
 function calcXRange() {
     minX = maxX = 0;
-    for (var y = floor.min; y <= floor.max; y++) {
+    for (let y = floor.min; y <= floor.max; y++) {
         if (!floor[y]) continue;
         if (floor[y].min < minX) minX = floor[y].min;
         if (floor[y].max > maxX) maxX = floor[y].max;
@@ -218,7 +218,7 @@ function color(fg, bg) {
 }
 
 // Size of the terminal
-var termSize = {w: 80, h: 25};
+let termSize = {w: 80, h: 25};
 function onResize() {
     termSize.w = process.stdout.columns;
     termSize.h = process.stdout.rows;
@@ -268,7 +268,7 @@ const fullBlock = "\u2588",
 
 // Our main input function
 function main(data) {
-    var curRoom = {};
+    let curRoom = {};
 
     if (data === "\x03" || data === "q") {
         // ctrl+C or quit
@@ -306,9 +306,9 @@ function main(data) {
                 case "e":
                     // Edit the note
                     (function() {
-                        var note = "";
-                        var row = floor[curY] || {};
-                        var room = row[curX] || {};
+                        let note = "";
+                        let row = floor[curY] || {};
+                        let room = row[curX] || {};
 
                         wr("\nNote: ");
                         cursor(true);
@@ -360,23 +360,23 @@ function main(data) {
     }
 
     // Figure out our display ranges
-    var maxH = ~~((termSize.h-7)/2);
+    let maxH = ~~((termSize.h-7)/2);
     if (maxH < 8) maxH = 8;
-    var maxW = ~~(termSize.w/2-2);
+    let maxW = ~~(termSize.w/2-2);
     if (maxW < 8) maxW = 8;
-    var minY = floor.min;
-    var maxY = floor.max;
+    let minY = floor.min;
+    let maxY = floor.max;
     if (curY < minY) minY = curY;
     if (curY > maxY) maxY = curY;
     if (maxY - minY > maxH) {
         // Too tall!
-        var hh = ~~(maxH/2);
+        let hh = ~~(maxH/2);
         minY = curY - hh;
         maxY = curY + hh - 1;
     }
     calcXRange();
     if (maxX - minX > maxW) {
-        var hw = ~~(maxW/2);
+        let hw = ~~(maxW/2);
         minX = curX - hw;
         maxX = curX + hw - 1;
     }
@@ -386,7 +386,7 @@ function main(data) {
     reset();
     cln();
     wr("Floor " + curZ + "\n");
-    var prevRow = {};
+    let prevRow = {};
     for (let y = minY; y <= maxY; y++) {
         let row = floor[y] || {};
 
