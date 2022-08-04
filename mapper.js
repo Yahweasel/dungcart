@@ -137,11 +137,11 @@ function toggleExit(dir) {
     var room = row[curX] || {};
     if (dir === d) {
         if (room.d) {
-            if (room.l) {
-                delete room.l;
+            if (room.t) {
+                delete room.t;
                 delete room.d;
             } else
-                room.l = 1;
+                room.t = 1;
         } else
             room.d = 1;
     } else {
@@ -442,7 +442,7 @@ function main(data) {
                 else
                     wr("\u2191" /* ^ */);
             } else if (room.d) {
-                if (room.l)
+                if (room.t)
                     wr("\u2913" /* v trap */);
                 else
                     wr("\u2193" /* v */);
