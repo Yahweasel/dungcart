@@ -261,10 +261,10 @@ function bold(on) {
 
 // Block drawing characters
 const fullBlock = "\u2588",
-      upTriangle = "\u25b2",
-      rightTriangle = "\u25b6",
-      downTriangle = "\u25bc",
-      leftTriangle = "\u25c0";
+      upTriangle = "\ud83e\udf6f",
+      rightTriangle = "\ud83e\udf6c",
+      downTriangle = "\ud83e\udf6d",
+      leftTriangle = "\ud83e\udf6e";
 
 // Our main input function
 function main(data) {
