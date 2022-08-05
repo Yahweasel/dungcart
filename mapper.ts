@@ -474,7 +474,10 @@ function main(data: string) {
             }
 
             // NE tile indicates extra state
-            if (room.n && nRoom.s &&
+            if (room.a && (room.u || room.d)) {
+                // Show the note with color instead of text
+                color(62, 2);
+            } else if (room.n && nRoom.s &&
                 room.e && eRoom.w &&
                 nRoom.e && neRoom.w &&
                 eRoom.n && neRoom.s) {
@@ -482,13 +485,7 @@ function main(data: string) {
             } else {
                 color(62, 0);
             }
-            if (room.a) {
-                if (room.u || room.d) {
-                    wr("*" /* too much going on */);
-                } else {
-                    wr("\u25a4" /* note */);
-                }
-            } else if (room.u) {
+            if (room.u) {
                 if (room.d)
                     wr("\u2195" /* ^v */);
                 else
@@ -498,6 +495,8 @@ function main(data: string) {
                     wr("\u2913" /* v trap */);
                 else
                     wr("\u2193" /* v */);
+            } else if (room.a) {
+                wr("\u25a4" /* note */);
             } else {
                 wr(" ");
             }
