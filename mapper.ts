@@ -204,7 +204,6 @@ if (!map[curZ]) {
     // Need at least a starting floor!
     floor = map[curZ] = newFloor(0, 0);
     curMode = "d";
-    explDig = true;
 }
 
 // Rotations of directions
@@ -380,15 +379,21 @@ function main(data: string) {
             break;
 
         case " ": // mode change
-            if (curMode === "x")
+            if (curMode === "x") {
                 curMode = "d";
-            else
+            } else {
                 curMode = "x";
+                explDig = false;
+            }
             break;
 
         case "x": // activate explore + dig
-            if (curMode === "x")
+            if (curMode === "x") {
                 explDig = !explDig;
+            } else {
+                curMode = "x";
+                explDig = true;
+            }
             break;
     }
 
