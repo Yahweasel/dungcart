@@ -181,6 +181,25 @@ function toggleExit(dir: Direction) {
     }
 }
 
+// "Paint" this room by connecting all exits to adjoining rooms
+function paint() {
+    const row: Row = floor[curY] || {min: 0, max: 0};
+    const room = row[curX];
+    for (const dir of [n, s, e, w]) {
+        const rdir = rotate(dir, 2);
+        const nRow: Row = floor[curY + dir.y] || {min: 0, max: 0};
+        const nRoom = nRow[curX + dir.x];
+        if (room && nRoom) {
+            room[dir.k] = true;
+            nRoom[rdir.k] = true;
+        } else if (room) {
+            delete room[dir.k];
+        } else if (nRoom) {
+            delete nRoom[rdir.k];
+        }
+    }
+}
+
 if (!map[curZ]) {
     // Need at least a starting floor!
     floor = map[curZ] = newFloor(0, 0);
@@ -313,6 +332,14 @@ function main(data: string) {
                 case "xr": move(u, explDig); clear(); save(); break;
                 case "xf": move(d, explDig); clear(); save(); break;
 
+                // painting
+                case "pw": move(n, true); paint(); save(); break;
+                case "pa": move(w, true); paint(); save(); break;
+                case "ps": move(s, true); paint(); save(); break;
+                case "pd": move(e, true); paint(); save(); break;
+                case "pr": move(u, true); paint(); clear(); save(); break;
+                case "pf": move(d, true); paint(); clear(); save(); break;
+
                 // reading
                 case "rw": move(n, false); break;
                 case "ra": move(w, false); break;
@@ -326,7 +353,11 @@ function main(data: string) {
         case "z": // delete
             if (curMode !== "r") {
                 delete floor[curY][curX];
-                curMode = "x";
+                if (curMode === "p") {
+                    paint();
+                } else {
+                    curMode = "x";
+                }
                 save();
             }
             break;
@@ -342,6 +373,10 @@ function main(data: string) {
 
         case "t": // read mode
             curMode = "r";
+            break;
+
+        case "g": // paint mode
+            curMode = "p";
             break;
 
         case " ": // mode change
@@ -470,7 +505,7 @@ function main(data: string) {
             if (y === curY && x === curX) {
                 // This is our current room, so indicate it
                 curRoom = room;
-                if (curMode === "r")
+                if (curMode === "r" || curMode === "p")
                     wr("\u25cf" /* @ */);
                 else switch (curDir.k) {
                     case "n": wr("\u25b4" /* ^ */); break;
@@ -529,6 +564,7 @@ function main(data: string) {
         case "x": wr("Exploring" + (explDig ? " + digging" : "") + "\n"); break;
         case "d": wr("Digging\n"); break;
         case "r": wr("Reading\n"); break;
+        case "p": wr("Painting\n"); break;
         default: wr("???\n"); break;
     }
 
