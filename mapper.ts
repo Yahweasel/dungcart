@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 const fs = require("fs");
 
+import type {Room, Row, Floor, Mapp} from "./mapp";
+
 interface Direction {
     k: string; // "key" (name) for the direction
     // Offsets
@@ -21,23 +23,6 @@ if (process.argv.length < 3) {
     console.error("Use: mapper.js <map file>");
     process.exit(1);
 }
-
-// Our map is floors full of rows full of rooms
-type Room = Record<string, number> & {
-    // These are stored as numbers to make the JSON smaller
-    n?: number;
-    s?: number;
-    e?: number;
-    w?: number;
-    u?: number;
-    d?: number;
-    t?: number; // Indicates that down is a trap
-    a?: string; // Note
-};
-
-type Row = Record<number, Room> & {min: number, max: number};
-type Floor = Record<number, Row> & {min: number, max: number};
-type Mapp = Record<number, Floor>;
 
 // We want raw input
 const stdin = process.stdin;
