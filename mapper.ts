@@ -349,6 +349,14 @@ function main(data: string) {
             }
             break;
 
+        // Digging
+        case "W": toggleExit(curDir); save(); break;
+        case "A": toggleExit(rotate(curDir, -1)); save(); break;
+        case "S": toggleExit(rotate(curDir, 2)); save(); break;
+        case "D": toggleExit(rotate(curDir, 1)); save(); break;
+        case "R": toggleExit(u); save(); break;
+        case "F": toggleExit(d); save(); break;
+
         case "z": // delete
             if (curMode !== "r") {
                 delete floor[curY][curX];
