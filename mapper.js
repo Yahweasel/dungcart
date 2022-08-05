@@ -263,87 +263,73 @@ function main(data) {
     }
 
     // Perform the requested action
-    switch (curMode) {
+    switch (data) {
+        // Movement
+        case "w":
+        case "a":
+        case "s":
         case "d":
-            switch (data) {
-                case "w": toggleExit(curDir); save(); break;
-                case "a": toggleExit(rotate(curDir, -1)); save(); break;
-                case "s": toggleExit(rotate(curDir, 2)); save(); break;
-                case "d": toggleExit(rotate(curDir, 1)); save(); break;
-                case "r": toggleExit(u); save(); break;
-                case "f": toggleExit(d); save(); break;
-                case "z": delete floor[curY][curX]; curMode = "x"; save(); break;
-                case " ": curMode = "x"; break;
+        case "r": // up
+        case "f": // down
+            switch (curMode + data) {
+                // digging
+                case "dw": toggleExit(curDir); save(); break;
+                case "da": toggleExit(rotate(curDir, -1)); save(); break;
+                case "ds": toggleExit(rotate(curDir, 2)); save(); break;
+                case "dd": toggleExit(rotate(curDir, 1)); save(); break;
+                case "dr": toggleExit(u); save(); break;
+                case "df": toggleExit(d); save(); break;
+
+                // exploring
+                case "xw": move(curDir, explDig); save(); break;
+                case "xa": curDir = rotate(curDir, -1); break;
+                case "xs": curDir = rotate(curDir, 2); break;
+                case "xd": curDir = rotate(curDir, 1); break;
+                case "xr": move(u, explDig); clear(); save(); break;
+                case "xf": move(d, explDig); clear(); save(); break;
+
+                // reading
+                case "rw": move(n, false); break;
+                case "ra": move(w, false); break;
+                case "rs": move(s, false); break;
+                case "rd": move(e, false); break;
+                case "rr": move(u, false); clear(); break;
+                case "rf": move(d, false); clear(); break;
             }
             break;
 
-        case "x":
-            switch (data) {
-                case "w": move(curDir, explDig); save(); break;
-                case "a": curDir = rotate(curDir, -1); break;
-                case "s": curDir = rotate(curDir, 2); break;
-                case "d": curDir = rotate(curDir, 1); break;
-                case "r": move(u, explDig); clear(); save(); break;
-                case "f": move(d, explDig); clear(); save(); break;
-                case "z": delete floor[curY][curX]; save(); break;
-                case " ": curMode = "d"; break;
-                case "t": curMode = "r"; break;
-                case "x": explDig = !explDig; break;
-
-                case "e":
-                    // Edit the note
-                    (function() {
-                        let note = "";
-                        let row = floor[curY] || {};
-                        let room = row[curX] || {};
-
-                        wr("\nNote: ");
-                        cursor(true);
-
-                        function input(data) {
-                            if (data === "\n" || data === "\r") {
-                                // End of line
-                                if (note === "")
-                                    delete room.a;
-                                else
-                                    room.a = note;
-                                save();
-                                clear();
-                                main("");
-                            } else if (data === "\x7f") {
-                                // backspace
-                                note = note.slice(0, note.length - 1);
-                                wr("\rNote: " + note);
-                                cln();
-                                rd(input);
-                            } else if (data === "\x03") {
-                                // ctrl+C
-                                process.exit(0);
-                            } else {
-                                wr(data);
-                                note += data;
-                                rd(input);
-                            }
-                        }
-                        rd(input);
-                    })();
-                    return;
+        case "z": // delete
+            if (curMode !== "r") {
+                delete floor[curY][curX];
+                curMode = "x";
+                save();
             }
             break;
 
-        case "r":
-            switch (data) {
-                case "w": move(n, false); break;
-                case "a": move(w, false); break;
-                case "s": move(s, false); break;
-                case "d": move(e, false); break;
-                case "r": move(u, false); clear(); break;
-                case "f": move(d, false); clear(); break;
-                case " ": curMode = "x"; break;
+        case "e": // edit note
+            if (curMode !== "r") {
+                editNote();
+
+                // editNote will resume the main loop itself
+                return;
             }
             break;
 
-        default: curMode = "x";
+        case "t": // read mode
+            curMode = "r";
+            break;
+
+        case " ": // mode change
+            if (curMode === "x")
+                curMode = "d";
+            else
+                curMode = "x";
+            break;
+
+        case "x": // activate explore + dig
+            if (curMode === "x")
+                explDig = !explDig;
+            break;
     }
 
     // Figure out our display ranges
@@ -530,6 +516,43 @@ function main(data) {
     cursor(true);
 
     rd(main);
+}
+
+// Edit a note
+function editNote() {
+    let note = "";
+    let row = floor[curY] || {};
+    let room = row[curX] || {};
+
+    wr("\nNote: ");
+    cursor(true);
+
+    function input(data) {
+        if (data === "\n" || data === "\r") {
+            // End of line
+            if (note === "")
+                delete room.a;
+            else
+                room.a = note;
+            save();
+            clear();
+            main("");
+        } else if (data === "\x7f") {
+            // backspace
+            note = note.slice(0, note.length - 1);
+            wr("\rNote: " + note);
+            cln();
+            rd(input);
+        } else if (data === "\x03") {
+            // ctrl+C
+            process.exit(0);
+        } else {
+            wr(data);
+            note += data;
+            rd(input);
+        }
+    }
+    rd(input);
 }
 
 clear();
