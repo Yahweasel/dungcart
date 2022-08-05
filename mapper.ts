@@ -480,6 +480,7 @@ function drawScreen() {
     wr(`Floor ${curZ} `);
     color(4);
     wr(`(${curX}, ${-curY})\n`);
+    let scY = 1;
     let prevRow: Row = {min: 0, max: 0};
     for (let y = minY; y <= maxY; y++) {
         let row: Row = floor[y] || {min: 0, max: 0};
@@ -545,6 +546,7 @@ function drawScreen() {
         }
         cln();
         wr("\n");
+        scY++;
 
         // Now the row of rooms itself
         for (let x: number = minX; x <= maxX; x++) {
@@ -593,6 +595,7 @@ function drawScreen() {
         }
         cln();
         wr("\n");
+        scY++;
 
         if (y === maxY) {
             // We need to draw any southern exits
@@ -608,9 +611,15 @@ function drawScreen() {
             }
             cln();
             wr("\n");
+            scY++;
         }
 
         prevRow = row;
+    }
+
+    for (; scY < termSize.h - 5; scY++) {
+        cln();
+        wr("\n");
     }
 
     return curRoom;
