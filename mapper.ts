@@ -185,6 +185,7 @@ if (!map[curZ]) {
     // Need at least a starting floor!
     floor = map[curZ] = newFloor(0, 0);
     curMode = "d";
+    explDig = true;
 }
 
 // Rotations of directions
