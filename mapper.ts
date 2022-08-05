@@ -403,6 +403,14 @@ function main(data: string) {
                 explDig = true;
             }
             break;
+
+        // Help
+        case "h":
+        case "H":
+        case "/":
+        case "?":
+            help();
+            return;
     }
 
     // Figure out our display ranges
@@ -630,6 +638,37 @@ function editNote() {
         }
     }
     rd(input);
+}
+
+// Help screen
+function help() {
+    cursor(false);
+    clear();
+    reset();
+    color();
+    wr(
+`Help:
+space: Toggle between explore and dig modes
+x: Enter explore+dig mode
+t: Enter read mode
+g: Enter paint mode
+e: Edit note
+z: Delete room
+q: Quit
+
+Movement: wasd, r = up, f = down
+Explore: Move directionally
+Explore+dig: Move directionally, create new
+             rooms
+Dig: Creates or removes exits in specified
+     direction
+Read: Move in absolute directions
+Paint: Move in absolute directions, painting
+       rooms
+
+Shift+wasdrf: Always digs\n`);
+    cursor(true);
+    rd(() => main(""));
 }
 
 clear();
