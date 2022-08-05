@@ -61,7 +61,7 @@ function save() {
     fs.writeFileSync(mapFile, JSON.stringify(map));
 }
 
-let curZ = 1, curY = 0, curX = 0, curMode = "x", curDir = n;
+let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false, curDir = n;
 
 // Create a new floor from scratch
 function newFloor(startY, startX) {
@@ -160,20 +160,6 @@ if (!map[curZ]) {
 }
 
 let floor = map[curZ];
-let minX, maxX;
-
-// Calculate the X range for the current floor
-function calcXRange() {
-    minX = maxX = 0;
-    for (let y = floor.min; y <= floor.max; y++) {
-        if (!floor[y]) continue;
-        if (floor[y].min < minX) minX = floor[y].min;
-        if (floor[y].max > maxX) maxX = floor[y].max;
-    }
-    if (curX < minX) minX = curX;
-    if (curX > maxX) maxX = curX;
-}
-calcXRange();
 
 // Rotations of directions
 function rotate(dir, by) {
@@ -293,15 +279,16 @@ function main(data) {
 
         case "x":
             switch (data) {
-                case "w": move(curDir, true); save(); break;
+                case "w": move(curDir, explDig); save(); break;
                 case "a": curDir = rotate(curDir, -1); break;
                 case "s": curDir = rotate(curDir, 2); break;
                 case "d": curDir = rotate(curDir, 1); break;
-                case "r": move(u, true); clear(); save(); break;
-                case "f": move(d, true); clear(); save(); break;
+                case "r": move(u, explDig); clear(); save(); break;
+                case "f": move(d, explDig); clear(); save(); break;
                 case "z": delete floor[curY][curX]; save(); break;
                 case " ": curMode = "d"; break;
                 case "t": curMode = "r"; break;
+                case "x": explDig = !explDig; break;
 
                 case "e":
                     // Edit the note
@@ -364,18 +351,13 @@ function main(data) {
     if (maxH < 8) maxH = 8;
     let maxW = ~~(termSize.w/2-2);
     if (maxW < 8) maxW = 8;
-    let minY = floor.min;
-    let maxY = floor.max;
-    if (curY < minY) minY = curY;
-    if (curY > maxY) maxY = curY;
-    if (maxY - minY > maxH) {
-        // Too tall!
+    let minY, maxY, minX, maxX;
+    {
         let hh = ~~(maxH/2);
         minY = curY - hh;
         maxY = curY + hh - 1;
     }
-    calcXRange();
-    if (maxX - minX > maxW) {
+    {
         let hw = ~~(maxW/2);
         minX = curX - hw;
         maxX = curX + hw - 1;
@@ -530,7 +512,7 @@ function main(data) {
     // And the current mode
     cln();
     switch (curMode) {
-        case "x": wr("Exploring\n"); break;
+        case "x": wr("Exploring" + (explDig ? " + digging" : "") + "\n"); break;
         case "d": wr("Digging\n"); break;
         case "r": wr("Reading\n"); break;
         default: wr("???\n"); break;
