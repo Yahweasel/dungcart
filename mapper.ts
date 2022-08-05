@@ -183,7 +183,7 @@ function toggleExit(dir: Direction) {
 
 if (!map[curZ]) {
     // Need at least a starting floor!
-    map[curZ] = newFloor(0, 0);
+    floor = map[curZ] = newFloor(0, 0);
     curMode = "d";
 }
 
