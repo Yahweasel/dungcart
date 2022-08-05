@@ -23,14 +23,15 @@ if (process.argv.length < 3) {
 }
 
 // Our map is floors full of rows full of rooms
-type Room = Record<string, boolean> & {
-    n?: boolean;
-    s?: boolean;
-    e?: boolean;
-    w?: boolean;
-    u?: boolean;
-    d?: boolean;
-    t?: boolean; // Indicates that down is a trap
+type Room = Record<string, number> & {
+    // These are stored as numbers to make the JSON smaller
+    n?: number;
+    s?: number;
+    e?: number;
+    w?: number;
+    u?: number;
+    d?: number;
+    t?: number; // Indicates that down is a trap
     a?: string; // Note
 };
 
@@ -150,11 +151,11 @@ function move(dir: Direction, dig: boolean = false) {
         ret = true;
 
         // Set its opposite exit
-        if (dir === u) nextRoom.d = true;
+        if (dir === u) nextRoom.d = 1;
         else if (dir === d) {} // maybe pitfall
         else {
-            room[dir.k] = true;
-            nextRoom[rotate(dir, 2).k] = true;
+            room[dir.k] = 1;
+            nextRoom[rotate(dir, 2).k] = 1;
         }
     }
 
@@ -171,14 +172,14 @@ function toggleExit(dir: Direction) {
                 delete room.t;
                 delete room.d;
             } else
-                room.t = true;
+                room.t = 1;
         } else
-            room.d = true;
+            room.d = 1;
     } else {
         if (room[dir.k])
             delete room[dir.k];
         else
-            room[dir.k] = true;
+            room[dir.k] = 1;
     }
 }
 
@@ -191,8 +192,8 @@ function paint() {
         const nRow: Row = floor[curY + dir.y] || {min: 0, max: 0};
         const nRoom = nRow[curX + dir.x];
         if (room && nRoom) {
-            room[dir.k] = true;
-            nRoom[rdir.k] = true;
+            room[dir.k] = 1;
+            nRoom[rdir.k] = 1;
         } else if (room) {
             delete room[dir.k];
         } else if (nRoom) {
