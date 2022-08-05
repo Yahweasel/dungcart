@@ -297,8 +297,6 @@ const fullBlock = "\u2588",
 
 // Our main input function
 function main(data: string) {
-    let curRoom: Room = {};
-
     if (data === "\x03" || data === "q") {
         // ctrl+C or quit
         wr("\n");
@@ -412,6 +410,37 @@ function main(data: string) {
             help();
             return;
     }
+
+    // Draw the screen
+    const curRoom = drawScreen();
+
+    // And the current mode
+    cln();
+    switch (curMode) {
+        case "x": wr("Exploring" + (explDig ? " + digging" : "") + "\n"); break;
+        case "d": wr("Digging\n"); break;
+        case "r": wr("Reading\n"); break;
+        case "p": wr("Painting\n"); break;
+        default: wr("???\n"); break;
+    }
+
+    // Our current facing if applicable
+    cln();
+    if (curMode === "x" || curMode === "d")
+        wr("Facing " + curDir.k);
+    wr("\n");
+
+    // And request input
+    clr();
+    wr("> ");
+    cursor(true);
+
+    rd(main);
+}
+
+// Draw the map part of the screen
+function drawScreen() {
+    let curRoom: Room = {};
 
     // Figure out our display ranges
     let maxH = ~~((termSize.h-7)/2);
@@ -578,28 +607,7 @@ function main(data: string) {
         wr("Note: " + curRoom.a);
     wr("\n");
 
-    // And the current mode
-    cln();
-    switch (curMode) {
-        case "x": wr("Exploring" + (explDig ? " + digging" : "") + "\n"); break;
-        case "d": wr("Digging\n"); break;
-        case "r": wr("Reading\n"); break;
-        case "p": wr("Painting\n"); break;
-        default: wr("???\n"); break;
-    }
-
-    // Our current facing if applicable
-    cln();
-    if (curMode === "x" || curMode === "d")
-        wr("Facing " + curDir.k);
-    wr("\n");
-
-    // And request input
-    clr();
-    wr("> ");
-    cursor(true);
-
-    rd(main);
+    return curRoom;
 }
 
 // Edit a note
