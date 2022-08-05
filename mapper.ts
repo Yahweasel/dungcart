@@ -84,7 +84,8 @@ try {
     map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
 } catch (ex) {}
 
-let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false, curDir = n;
+let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false,
+    smallMode = false, curDir = n;
 let floor = map[curZ];
 
 // Save the current map
@@ -376,6 +377,10 @@ function main(data: string) {
             }
             break;
 
+        case "v": // small mode
+            smallMode = !smallMode;
+            break;
+
         case "t": // read mode
             curMode = "r";
             break;
@@ -412,7 +417,14 @@ function main(data: string) {
     }
 
     // Draw the screen
-    const curRoom = drawScreen();
+    const curRoom = smallMode ? drawScreenSmall() : drawScreen();
+
+    // Write anything about the current room
+    cln();
+    color();
+    if (curRoom.a)
+        wr("Note: " + curRoom.a);
+    wr("\n");
 
     // And the current mode
     cln();
@@ -600,12 +612,124 @@ function drawScreen() {
         prevRow = row;
     }
 
-    // Write anything about the current room
-    cln();
+    return curRoom;
+}
+
+// Draw the map part of the screen, small mode
+function drawScreenSmall() {
+    const curRow: Row = floor[curY] || {min: 0, max: 0};
+    const curRoom: Room = curRow[curX] || {};
+
+    // Figure out our display ranges
+    let maxH = termSize.h-6;
+    if (maxH < 8) maxH = 8;
+    let maxW = termSize.w-1;
+    if (maxW < 8) maxW = 8;
+    let minY, maxY, minX, maxX;
+    {
+        let hh = ~~(maxH/2);
+        minY = curY - hh;
+        maxY = curY + hh - 1;
+    }
+    {
+        let hw = ~~(maxW/2);
+        minX = curX - hw;
+        maxX = curX + hw - 1;
+    }
+
+    // Draw the floor indicator
+    cursor(false);
+    reset();
     color();
-    if (curRoom.a)
-        wr("Note: " + curRoom.a);
-    wr("\n");
+    cln();
+    wr(`Floor ${curZ} `);
+    // FIXME: duplication
+    color(1);
+    if (curMode === "r" || curMode === "p")
+        wr("\u25cf" /* @ */);
+    else switch (curDir.k) {
+        case "n": wr("\u25b4" /* ^ */); break;
+        case "e": wr("\u25b8" /* > */); break;
+        case "s": wr("\u25be" /* v */); break;
+        case "w": wr("\u25c2" /* < */); break;
+        default:  wr("\u25cf" /* @ */);
+    }
+    wr(" ");
+    if (curRoom.a && (curRoom.u || curRoom.d)) {
+        color(62, 2);
+    } else {
+        color(2);
+    }
+    if (curRoom.u) {
+        if (curRoom.d)
+            wr("\u2195" /* ^v */);
+        else
+            wr("\u2191" /* ^ */);
+    } else if (curRoom.d) {
+        if (curRoom.t)
+            wr("\u2913" /* v trap */);
+        else
+            wr("\u2193" /* v */);
+    } else if (curRoom.a) {
+        wr("\u25a4" /* note */);
+    } else {
+        wr(" ");
+    }
+    color(4);
+    wr(` (${curX}, ${-curY})\n`);
+    color();
+
+    for (let y = minY; y <= maxY; y++) {
+        let row: Row = floor[y] || {min: 0, max: 0};
+
+        for (let x: number = minX; x <= maxX; x++) {
+            let room: Room = row[x] || {};
+
+            let ind =
+                room.n ? (
+                    room.e ? (
+                        room.s ? (
+                            room.w ? "\u256c" : "\u2560"
+                        ) : (
+                            room.w ? "\u2569" : "\u255a"
+                        )
+                    ) : (
+                        room.s ? (
+                            room.w ? "\u2563" : "\u2551"
+                        ) : (
+                            room.w ? "\u255d" : "\u2579"
+                        )
+                    )
+                ) : (
+                    room.e ? (
+                        room.s ? (
+                            room.w ? "\u2566" : "\u2554"
+                        ) : (
+                            room.w ? "\u2550" : "\u257a"
+                        )
+                    ) : (
+                        room.s ? (
+                            room.w ? "\u2557" : "\u257b"
+                        ) : (
+                            room.w ? "\u2578" : (
+                                row[x] ? "\u25a1" : " "
+                            )
+                        )
+                    )
+                );
+
+            // Select the colors based on what's here
+            let bg = 0;
+            if (y === curY && x === curX)
+                bg += 1;
+            if (room.a || room.u || room.d)
+                bg += 2;
+            color(67, bg);
+            wr(ind);
+        }
+        cln();
+        wr("\n");
+    }
 
     return curRoom;
 }
@@ -660,6 +784,7 @@ x: Enter explore+dig mode
 t: Enter read mode
 g: Enter paint mode
 e: Edit note
+v: Switch between view sizes
 z: Delete room
 q: Quit
 
