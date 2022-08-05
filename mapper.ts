@@ -325,12 +325,12 @@ function main(data: string) {
                 case "df": toggleExit(d); save(); break;
 
                 // exploring
-                case "xw": move(curDir, explDig); save(); break;
+                case "xw": move(curDir, explDig); if (explDig) save(); break;
                 case "xa": curDir = rotate(curDir, -1); break;
                 case "xs": curDir = rotate(curDir, 2); break;
                 case "xd": curDir = rotate(curDir, 1); break;
-                case "xr": move(u, explDig); clear(); save(); break;
-                case "xf": move(d, explDig); clear(); save(); break;
+                case "xr": move(u, explDig); clear(); if (explDig) save(); break;
+                case "xf": move(d, explDig); clear(); if (explDig) save(); break;
 
                 // painting
                 case "pw": move(n, true); paint(); save(); break;
