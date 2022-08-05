@@ -1,17 +1,42 @@
 #!/usr/bin/env node
 const fs = require("fs");
 
-const n = {k: "n", x: 0, y: -1, z: 0},
-      s = {k: "s", x: 0, y: 1, z: 0},
-      w = {k: "w", x: -1, y: 0, z: 0},
-      e = {k: "e", x: 1, y: 0, z: 0},
-      u = {k: "u", x: 0, y: 0, z: -1},
-      d = {k: "d", x: 0, y: 0, z: 1};
+interface Direction {
+    k: string; // "key" (name) for the direction
+    // Offsets
+    x: number;
+    y: number;
+    z: number;
+}
+
+// Standard directions
+const n: Direction = {k: "n", x: 0, y: -1, z: 0},
+      s: Direction = {k: "s", x: 0, y: 1, z: 0},
+      w: Direction = {k: "w", x: -1, y: 0, z: 0},
+      e: Direction = {k: "e", x: 1, y: 0, z: 0},
+      u: Direction = {k: "u", x: 0, y: 0, z: -1},
+      d: Direction = {k: "d", x: 0, y: 0, z: 1};
 
 if (process.argv.length < 3) {
     console.error("Use: mapper.js <map file>");
     process.exit(1);
 }
+
+// Our map is floors full of rows full of rooms
+type Room = Record<string, boolean> & {
+    n?: boolean;
+    s?: boolean;
+    e?: boolean;
+    w?: boolean;
+    u?: boolean;
+    d?: boolean;
+    t?: boolean; // Indicates that down is a trap
+    a?: string; // Note
+};
+
+type Row = Record<number, Room> & {min: number, max: number};
+type Floor = Record<number, Row> & {min: number, max: number};
+type Mapp = Record<number, Floor>;
 
 // We want raw input
 const stdin = process.stdin;
@@ -19,10 +44,11 @@ stdin.setRawMode(true);
 stdin.resume();
 stdin.setEncoding("utf8");
 
-let stdinBuffer = [];
-let stdinThen = null;
+let stdinBuffer: string[] = [];
+let stdinThen: (data:string)=>unknown = null;
 
-function stdinHandler(data) {
+// Handle this data
+function stdinHandler(data: string) {
     for (let di = 0; di < data.length; di++) {
         stdinBuffer.push(data[di]);
         if (stdinThen) {
@@ -34,7 +60,8 @@ function stdinHandler(data) {
 }
 stdin.on("data", stdinHandler);
 
-function rd(then) {
+// Read a character from stdin then do something
+function rd(then: (data:string)=>unknown) {
     if (stdinBuffer.length) {
         then(stdinBuffer.shift());
     } else {
@@ -44,28 +71,30 @@ function rd(then) {
     }
 }
 
-function wr(text) {
+// Write to stdout
+function wr(text: string) {
     process.stdout.write(text);
 }
 
 // Input our map file
 let mapFile = process.argv[2];
-let map = {};
+let map: Mapp = {};
 
 try {
     map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
 } catch (ex) {}
+
+let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false, curDir = n;
+let floor = map[curZ];
 
 // Save the current map
 function save() {
     fs.writeFileSync(mapFile, JSON.stringify(map));
 }
 
-let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false, curDir = n;
-
 // Create a new floor from scratch
-function newFloor(startY, startX) {
-    let floor = {
+function newFloor(startY: number, startX: number) {
+    let floor: Floor = {
         min: startY,
         max: startY
     };
@@ -78,9 +107,9 @@ function newFloor(startY, startX) {
 }
 
 // Move to another room, digging if asked
-function move(dir, dig) {
-    let row = floor[curY] || {};
-    let room = row[curX] || {};
+function move(dir: Direction, dig: boolean = false) {
+    let row: Row = floor[curY] || {min: 0, max: 0};
+    let room: Room = row[curX] || {};
     let ret = false;
     let nextZ = curZ + dir.z;
     let nextY = curY + dir.y;
@@ -114,17 +143,17 @@ function move(dir, dig) {
 
     if (!nextRow[nextX]) {
         if (!dig) return false;
-        let nextRoom = nextRow[nextX] = {};
+        let nextRoom: Room = nextRow[nextX] = {};
         if (nextX < nextRow.min) nextRow.min = nextX;
         if (nextX > nextRow.max) nextRow.max = nextX;
         ret = true;
 
         // Set its opposite exit
-        if (dir === u) nextRoom.d = 1;
+        if (dir === u) nextRoom.d = true;
         else if (dir === d) {} // maybe pitfall
         else {
-            room[dir.k] = 1;
-            nextRoom[rotate(dir, 2).k] = 1;
+            room[dir.k] = true;
+            nextRoom[rotate(dir, 2).k] = true;
         }
     }
 
@@ -132,37 +161,34 @@ function move(dir, dig) {
 }
 
 // Toggle an exit in this direction
-function toggleExit(dir) {
-    let row = floor[curY] || {};
-    let room = row[curX] || {};
+function toggleExit(dir: Direction) {
+    let row: Row = floor[curY] || {min: 0, max: 0};
+    let room: Room = row[curX] || {};
     if (dir === d) {
         if (room.d) {
             if (room.t) {
                 delete room.t;
                 delete room.d;
             } else
-                room.t = 1;
+                room.t = true;
         } else
-            room.d = 1;
+            room.d = true;
     } else {
         if (room[dir.k])
             delete room[dir.k];
         else
-            room[dir.k] = 1;
+            room[dir.k] = true;
     }
 }
 
 if (!map[curZ]) {
     // Need at least a starting floor!
     map[curZ] = newFloor(0, 0);
-    map[curZ][curY][curX].u = 1;
     curMode = "d";
 }
 
-let floor = map[curZ];
-
 // Rotations of directions
-function rotate(dir, by) {
+function rotate(dir: Direction, by: number) {
     switch (by) {
         case 0:
             return dir;
@@ -195,9 +221,7 @@ function rotate(dir, by) {
 }
 
 // Set the color
-function color(fg, bg) {
-    if (typeof fg === "undefined") fg = 67;
-    if (typeof bg === "undefined") bg = 0;
+function color(fg: number = 67, bg: number = 0) {
     fg += 30;
     bg += 40;
     wr("\x1b[m\x1b[" + bg + "m\x1b[" + fg + "m");
@@ -236,12 +260,12 @@ function cln() {
 }
 
 // Show or hide the cursor
-function cursor(on) {
+function cursor(on: boolean) {
     wr("\x1b[?25" + (on?"h":"l"));
 }
 
 // Set or unset bold
-function bold(on) {
+function bold(on: boolean) {
     wr("\x1b[" + (on?"1":"0") + "m");
 }
 
@@ -253,8 +277,8 @@ const fullBlock = "\u2588",
       leftTriangle = "\ud83e\udf6e";
 
 // Our main input function
-function main(data) {
-    let curRoom = {};
+function main(data: string) {
+    let curRoom: Room = {};
 
     if (data === "\x03" || data === "q") {
         // ctrl+C or quit
@@ -352,18 +376,21 @@ function main(data) {
     // Draw the floor as-is
     cursor(false);
     reset();
+    color();
     cln();
-    wr("Floor " + curZ + "\n");
-    let prevRow = {};
+    wr(`Floor ${curZ} `);
+    color(4);
+    wr(`(${curX}, ${-curY})\n`);
+    let prevRow: Row = {min: 0, max: 0};
     for (let y = minY; y <= maxY; y++) {
-        let row = floor[y] || {};
+        let row: Row = floor[y] || {min: 0, max: 0};
 
         // North paths first
-        for (let x = minX; x <= maxX; x++) {
-            let room = row[x] || {};
-            let nRoom = prevRow[x] || {};
-            let eRoom = row[x+1] || {};
-            let neRoom = prevRow[x+1] || {};
+        for (let x: number = minX; x <= maxX; x++) {
+            let room: Room = row[x] || {};
+            let nRoom: Room = prevRow[x] || {};
+            let eRoom: Room = row[x+1] || {};
+            let neRoom: Room = prevRow[x+1] || {};
 
             color(7);
 
@@ -422,12 +449,12 @@ function main(data) {
         wr("\n");
 
         // Now the row of rooms itself
-        for (let x = minX; x <= maxX; x++) {
-            let room = row[x] || {};
-            let eRoom = row[x+1] || {};
+        for (let x: number = minX; x <= maxX; x++) {
+            let room: Room = row[x] || {};
+            let eRoom: Room = row[x+1] || {};
 
             if (x === minX) {
-                let wRoom = row[x-1] || {};
+                let wRoom: Room = row[x-1] || {};
                 color(7);
                 if (room.w) {
                     wr(wRoom.e ? fullBlock : leftTriangle);
@@ -521,13 +548,13 @@ function main(data) {
 // Edit a note
 function editNote() {
     let note = "";
-    let row = floor[curY] || {};
-    let room = row[curX] || {};
+    let row: Row = floor[curY] || {min: 0, max: 0};
+    let room: Room = row[curX] || {};
 
     wr("\nNote: ");
     cursor(true);
 
-    function input(data) {
+    function input(data: string) {
         if (data === "\n" || data === "\r") {
             // End of line
             if (note === "")
