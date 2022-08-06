@@ -432,12 +432,6 @@ function main(data: string) {
         default: wr("???\n"); break;
     }
 
-    // Our current facing if applicable
-    cln();
-    if (curMode === "x" || curMode === "d")
-        wr("Facing " + curDir.k);
-    wr("\n");
-
     // And request input
     clr();
     wr("> ");
@@ -482,21 +476,20 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = ~~((termSize.h-7)/2);
+    let maxH = ~~((termSize.h-5)/2);
     if (maxH < 8) maxH = 8;
-    let maxW = ~~(termSize.w/2-2);
+    let maxW = ~~(termSize.w/2);
     if (maxW < 8) maxW = 8;
-    let minY, maxY, minX, maxX;
+    let minY, minX, endY;
     {
         let hh = maxH/2;
         minY = ~~(curY - hh);
-        maxY = Math.ceil(curY + hh);
     }
     {
         let hw = maxW/2;
         minX = ~~(curX - hw);
-        maxX = Math.ceil(curX + hw - 1);
     }
+    endY = termSize.h - 4;
 
     // Draw the floor as-is
     cursor(false);
@@ -508,11 +501,12 @@ function drawScreen() {
     wr(`(${curX}, ${-curY})\n`);
     let scY = 1;
     let prevRow: Row = floor[minY-1] || {min: 0, max: 0};
-    for (let y = minY; y <= maxY; y++) {
+    for (let y = minY;; y++) {
         let row: Row = floor[y] || {min: 0, max: 0};
+        let scX = 0;
 
         // North paths first
-        for (let x: number = minX; x <= maxX; x++) {
+        for (let x: number = minX;; x++) {
             const room = row[x];
             const nRoom = prevRow[x];
             const eRoom = row[x+1];
@@ -533,6 +527,8 @@ function drawScreen() {
                    ((nRoom && nRoom.s && room && room.n) ? "e" : "") +
                    ((room && room.w && wRoom && wRoom.e) ? "s" : "") +
                    ((wRoom && wRoom.n && nwRoom && nwRoom.s) ? "w" : ""));
+                if (++scX >= termSize.w)
+                    break;
             }
 
             // N tile
@@ -550,6 +546,8 @@ function drawScreen() {
                    (nRoom ? "n" : "") +
                    (room ? "s" : ""));
             }
+            if (++scX >= termSize.w)
+                break;
 
             // If this is where the character is, the NE tile indicates extra state
             if (y !== curY || x !== curX || !extraState(room)) {
@@ -563,16 +561,17 @@ function drawScreen() {
                    ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
                    ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
             }
+            if (++scX >= termSize.w)
+                break;
         }
         cln();
         wr("\n");
-        scY++;
-
-        if (y === maxY)
+        if (++scY >= endY)
             break;
+        scX = 0;
 
         // Now the row of rooms itself
-        for (let x: number = minX; x <= maxX; x++) {
+        for (let x: number = minX;; x++) {
             const room = row[x];
             const eRoom = row[x+1];
 
@@ -594,6 +593,8 @@ function drawScreen() {
                        (room ? "4e" : "") +
                        (wRoom ? "w" : ""));
                 }
+                if (++scX >= termSize.w)
+                    break;
             }
 
             if (y === curY && x === curX) {
@@ -622,6 +623,8 @@ function drawScreen() {
                 wc(".");
 
             }
+            if (++scX >= termSize.w)
+                break;
 
             if (room && room.e) {
                 if (eRoom && eRoom.w)
@@ -638,27 +641,13 @@ function drawScreen() {
                    (eRoom ? "4e" : "") +
                    (room ? "w" : ""));
             }
+            if (++scX >= termSize.w)
+                break;
         }
         cln();
         wr("\n");
-        scY++;
-
-        if (y === maxY) {
-            // We need to draw any southern exits
-            color();
-            wr(" ");
-            for (let x = minX; x <= maxX; x++) {
-                let room = row[x] || {};
-                if (room.s)
-                    wc("v");
-                else
-                    wc(" ");
-                wc(" ");
-            }
-            cln();
-            wr("\n");
-            scY++;
-        }
+        if (++scY >= endY)
+            break;
 
         prevRow = row;
     }
@@ -677,7 +666,7 @@ function drawScreenSmall() {
     const curRoom: Room = curRow[curX] || {};
 
     // Figure out our display ranges
-    let maxH = termSize.h-6;
+    let maxH = termSize.h-5;
     if (maxH < 8) maxH = 8;
     let maxW = termSize.w-1;
     if (maxW < 8) maxW = 8;
