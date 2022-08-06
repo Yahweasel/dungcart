@@ -484,7 +484,7 @@ function drawScreen() {
     // Figure out our display ranges
     let maxH = ~~((termSize.h-7)/2);
     if (maxH < 8) maxH = 8;
-    let maxW = ~~((termSize.w-1)/2);
+    let maxW = ~~(termSize.w/2-2);
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
     {
