@@ -487,7 +487,7 @@ function drawScreen() {
             const eRoom = row[x+1];
             const neRoom = prevRow[x+1];
 
-            color(7);
+            color();
 
             // NW tile
             if (x === minX) {
@@ -564,7 +564,7 @@ function drawScreen() {
 
             if (x === minX) {
                 const wRoom = row[x-1];
-                color(7);
+                color();
                 if (room && room.w) {
                     if (wRoom && wRoom.e)
                         wc(" ");
@@ -596,7 +596,7 @@ function drawScreen() {
                     case "w": wr("\u25c2" /* < */); break;
                     default:  wr("\u25cf" /* @ */);
                 }
-                color(7);
+                color();
 
             } else if (room) {
                 wc("_");
@@ -628,7 +628,7 @@ function drawScreen() {
 
         if (y === maxY) {
             // We need to draw any southern exits
-            color(7);
+            color();
             wr(" ");
             for (let x = minX; x <= maxX; x++) {
                 let room = row[x] || {};
