@@ -451,20 +451,20 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = ~~((termSize.h-6)/2-1);
+    let maxH = ~~((termSize.h-7)/2);
     if (maxH < 8) maxH = 8;
-    let maxW = ~~(termSize.w/2-2);
+    let maxW = ~~((termSize.w-1)/2);
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
     {
-        let hh = ~~(maxH/2);
-        minY = curY - hh;
-        maxY = curY + hh - 1;
+        let hh = maxH/2;
+        minY = ~~(curY - hh);
+        maxY = Math.ceil(curY + hh);
     }
     {
-        let hw = ~~(maxW/2);
-        minX = curX - hw;
-        maxX = curX + hw - 1;
+        let hw = maxW/2;
+        minX = ~~(curX - hw);
+        maxX = Math.ceil(curX + hw - 1);
     }
 
     // Draw the floor as-is
@@ -476,7 +476,7 @@ function drawScreen() {
     color(4);
     wr(`(${curX}, ${-curY})\n`);
     let scY = 1;
-    let prevRow: Row = {min: 0, max: 0};
+    let prevRow: Row = floor[minY-1] || {min: 0, max: 0};
     for (let y = minY; y <= maxY; y++) {
         let row: Row = floor[y] || {min: 0, max: 0};
 
@@ -555,6 +555,9 @@ function drawScreen() {
         cln();
         wr("\n");
         scY++;
+
+        if (y === maxY)
+            break;
 
         // Now the row of rooms itself
         for (let x: number = minX; x <= maxX; x++) {
