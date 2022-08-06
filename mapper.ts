@@ -529,18 +529,17 @@ function drawScreen() {
                     color(62, 0);
                 }
             }
-            if (room && room.u) {
+            if (room && room.t) {
+                wc("t");
+            } else if (room && room.u) {
                 if (room.d)
-                    wr("\u2195" /* ^v */);
+                    wc("ud");
                 else
-                    wr("\u2191" /* ^ */);
+                    wc("u");
             } else if (room && room.d) {
-                if (room.t)
-                    wr("\u2913" /* v trap */);
-                else
-                    wr("\u2193" /* v */);
+                wc("d");
             } else if (room && room.a) {
-                wr("\u25a4" /* note */);
+                wc("n");
             } else {
                 wc("+" +
                    (nRoom ? "1" : "") +
