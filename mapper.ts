@@ -533,7 +533,7 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = ~~((termSize.h-5)/2);
+    let maxH = ~~((termSize.h-4)/2);
     if (maxH < 8) maxH = 8;
     let maxW = ~~(termSize.w/2);
     if (maxW < 8) maxW = 8;
@@ -546,12 +546,11 @@ function drawScreen() {
         let hw = maxW/2;
         minX = ~~(curX - hw);
     }
-    endY = termSize.h - 4;
+    endY = termSize.h - 3;
 
-    // Draw the floor as-is
+    // Draw the floor
     cursor(false);
     reset();
-    color();
     cln();
     wr(`Floor ${curZ} `);
     color(4);
@@ -723,7 +722,7 @@ function drawScreenSmall() {
     const curRoom: Room = curRow[curX] || {};
 
     // Figure out our display ranges
-    let maxH = termSize.h-5;
+    let maxH = termSize.h-4;
     if (maxH < 8) maxH = 8;
     let maxW = termSize.w-1;
     if (maxW < 8) maxW = 8;
@@ -842,7 +841,9 @@ function editNote() {
     let row: Row = floor[curY] || {min: 0, max: 0};
     let room: Room = row[curX] || {};
 
-    wr("\nNote: ");
+    wr("\r");
+    cln();
+    wr("Note: ");
     cursor(true);
 
     function input(data: string) {
