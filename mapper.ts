@@ -122,6 +122,7 @@ function validate(z?: number, y?: number) {
                 floor.min++;
         }
         for (; floor.max >= floor.min && !floor[floor.max]; floor.max--) {}
+        if (floor.max < floor.min) floor.max = floor.min;
         if (floor.min === floor.max && !floor[floor.min] && z !== 1) {
             // We can delete this whole floor
             delete map[z];
@@ -135,7 +136,9 @@ function validate(z?: number, y?: number) {
 
     // Validate the min and max
     for (; row.min <= row.max && !row[row.min]; row.min++) {}
+    if (row.min > row.max) row.min = row.max;
     for (; row.max >= row.min && !row[row.max]; row.max--) {}
+    if (row.max < row.min) row.max = row.min;
     if (row.min === row.max && !row[row.min]) {
         // We can delete this whole row
         delete floor[y];
