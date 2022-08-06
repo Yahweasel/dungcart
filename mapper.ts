@@ -448,6 +448,37 @@ function main(data: string) {
 
 // Draw the map part of the screen
 function drawScreen() {
+    /* Draw the extra state for this room. Returns true if there was any extra
+     * state to draw. */
+    function extraState(room: Room): boolean {
+        if (room && (room.a || room.u || room.d)) {
+            if (room.a && (room.u || room.d)) {
+                // Show the note with color instead of text
+                color(62, 2);
+            } else {
+                color(62, 0);
+            }
+        }
+        if (room && room.t) {
+            wc("t");
+            return true;
+        } else if (room && room.u) {
+            if (room.d)
+                wc("ud");
+            else
+                wc("u");
+            return true;
+        } else if (room && room.d) {
+            wc("d");
+            return true;
+        } else if (room && room.a) {
+            wc("n");
+            return true;
+        }
+
+        return false;
+    }
+
     let curRoom: Room = {};
 
     // Figure out our display ranges
@@ -520,27 +551,8 @@ function drawScreen() {
                    (room ? "s" : ""));
             }
 
-            // NE tile indicates extra state
-            if (room && (room.a || room.u || room.d)) {
-                if (room.a && (room.u || room.d)) {
-                    // Show the note with color instead of text
-                    color(62, 2);
-                } else {
-                    color(62, 0);
-                }
-            }
-            if (room && room.t) {
-                wc("t");
-            } else if (room && room.u) {
-                if (room.d)
-                    wc("ud");
-                else
-                    wc("u");
-            } else if (room && room.d) {
-                wc("d");
-            } else if (room && room.a) {
-                wc("n");
-            } else {
+            // If this is where the character is, the NE tile indicates extra state
+            if (y !== curY || x !== curX || !extraState(room)) {
                 wc("+" +
                    (nRoom ? "1" : "") +
                    (neRoom ? "2" : "") +
@@ -584,7 +596,6 @@ function drawScreen() {
                 }
             }
 
-            //color(1, row[x] ? 67 : 0);
             if (y === curY && x === curX) {
                 color(1);
                 // This is our current room, so indicate it
@@ -598,6 +609,10 @@ function drawScreen() {
                     case "w": wr("\u25c2" /* < */); break;
                     default:  wr("\u25cf" /* @ */);
                 }
+                color();
+
+            } else if (extraState(room)) {
+                // Just fix the color back after the extra state
                 color();
 
             } else if (room) {
