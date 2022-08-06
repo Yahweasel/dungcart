@@ -20,9 +20,26 @@ const n: Direction = {k: "n", x: 0, y: -1, z: 0},
       d: Direction = {k: "d", x: 0, y: 0, z: 1};
 
 if (process.argv.length < 3) {
-    console.error("Use: mapper.js <map file>");
+    console.error("Use: mapper.js <map file> [character set]");
     process.exit(1);
 }
+
+// Input our map file
+let mapFile = process.argv[2];
+let map: Mapp = {};
+
+try {
+    map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
+} catch (ex) {}
+
+let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false,
+    smallMode = false, curDir = n;
+let floor = map[curZ];
+
+// Character set
+const charSet: Record<string, string> = JSON.parse(
+    fs.readFileSync(process.argv[3] || "charset/lines.json")
+);
 
 // We want raw input
 const stdin = process.stdin;
@@ -62,17 +79,10 @@ function wr(text: string) {
     process.stdout.write(text);
 }
 
-// Input our map file
-let mapFile = process.argv[2];
-let map: Mapp = {};
-
-try {
-    map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
-} catch (ex) {}
-
-let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false,
-    smallMode = false, curDir = n;
-let floor = map[curZ];
+// Write from the character set to stdout
+function wc(def: string) {
+    process.stdout.write(charSet[def]);
+}
 
 // Save the current map
 function save() {
@@ -472,61 +482,75 @@ function drawScreen() {
 
         // North paths first
         for (let x: number = minX; x <= maxX; x++) {
-            let room: Room = row[x] || {};
-            let nRoom: Room = prevRow[x] || {};
-            let eRoom: Room = row[x+1] || {};
-            let neRoom: Room = prevRow[x+1] || {};
+            const room = row[x];
+            const nRoom = prevRow[x];
+            const eRoom = row[x+1];
+            const neRoom = prevRow[x+1];
 
             color(7);
 
             // NW tile
             if (x === minX) {
-                let wRoom = row[x-1] || {};
-                let nwRoom = prevRow[x-1] || {};
-                if (room.n && nRoom.s &&
-                    room.w && wRoom.e &&
-                    nRoom.w && nwRoom.e) {
-                    wr(fullBlock);
-                } else {
-                    wr(" ");
-                }
+                const wRoom = row[x-1];
+                const nwRoom = prevRow[x-1];
+                wc("+" +
+                   (nwRoom ? "1" : "") +
+                   (nRoom ? "2" : "") +
+                   (wRoom ? "3" : "") +
+                   (room ? "4" : "") +
+                   ((nwRoom && nwRoom.e && nRoom && nRoom.w) ? "n" : "") +
+                   ((nRoom && nRoom.s && room && room.n) ? "e" : "") +
+                   ((room && room.w && wRoom && wRoom.e) ? "s" : "") +
+                   ((wRoom && wRoom.n && nwRoom && nwRoom.s) ? "w" : ""));
             }
 
             // N tile
-            if (room.n) {
-                wr(nRoom.s ? fullBlock : upTriangle);
-            } else if (nRoom.s) {
-                wr(downTriangle);
+            if (room && room.n) {
+                if (nRoom && nRoom.s)
+                    wc(" ");
+                else
+                    wc("^");
+            } else if (nRoom && nRoom.s) {
+                wc("v");
             } else {
-                wr(" ");
+                wc("+" +
+                   (nRoom ? "12" : "") +
+                   (room ? "34" : "") +
+                   (nRoom ? "n" : "") +
+                   (room ? "s" : ""));
             }
 
             // NE tile indicates extra state
-            if (room.a && (room.u || room.d)) {
-                // Show the note with color instead of text
-                color(62, 2);
-            } else if (room.n && nRoom.s &&
-                room.e && eRoom.w &&
-                nRoom.e && neRoom.w &&
-                eRoom.n && neRoom.s) {
-                color(2, 7);
-            } else {
-                color(62, 0);
+            if (room && (room.a || room.u || room.d)) {
+                if (room.a && (room.u || room.d)) {
+                    // Show the note with color instead of text
+                    color(62, 2);
+                } else {
+                    color(62, 0);
+                }
             }
-            if (room.u) {
+            if (room && room.u) {
                 if (room.d)
                     wr("\u2195" /* ^v */);
                 else
                     wr("\u2191" /* ^ */);
-            } else if (room.d) {
+            } else if (room && room.d) {
                 if (room.t)
                     wr("\u2913" /* v trap */);
                 else
                     wr("\u2193" /* v */);
-            } else if (room.a) {
+            } else if (room && room.a) {
                 wr("\u25a4" /* note */);
             } else {
-                wr(" ");
+                wc("+" +
+                   (nRoom ? "1" : "") +
+                   (neRoom ? "2" : "") +
+                   (room ? "3" : "") +
+                   (eRoom ? "4" : "") +
+                   ((nRoom && nRoom.e && neRoom && neRoom.w) ? "n" : "") +
+                   ((neRoom && neRoom.s && eRoom && eRoom.n) ? "e" : "") +
+                   ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
+                   ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
             }
         }
         cln();
@@ -535,25 +559,34 @@ function drawScreen() {
 
         // Now the row of rooms itself
         for (let x: number = minX; x <= maxX; x++) {
-            let room: Room = row[x] || {};
-            let eRoom: Room = row[x+1] || {};
+            const room = row[x];
+            const eRoom = row[x+1];
 
             if (x === minX) {
-                let wRoom: Room = row[x-1] || {};
+                const wRoom = row[x-1];
                 color(7);
-                if (room.w) {
-                    wr(wRoom.e ? fullBlock : leftTriangle);
-                } else if (wRoom.e) {
-                    wr(rightTriangle);
+                if (room && room.w) {
+                    if (wRoom && wRoom.e)
+                        wc(" ");
+                    else
+                        wc("<");
+                } else if (wRoom && wRoom.e) {
+                    wc(">");
                 } else {
-                    wr(" ");
+                    wc("+" +
+                       (wRoom ? "1" : "") +
+                       (room ? "2" : "") +
+                       (wRoom ? "3" : "") +
+                       (room ? "4e" : "") +
+                       (wRoom ? "w" : ""));
                 }
             }
 
-            color(1, row[x] ? 67 : 0);
+            //color(1, row[x] ? 67 : 0);
             if (y === curY && x === curX) {
+                color(1);
                 // This is our current room, so indicate it
-                curRoom = room;
+                curRoom = room || {};
                 if (curMode === "r" || curMode === "p")
                     wr("\u25cf" /* @ */);
                 else switch (curDir.k) {
@@ -563,19 +596,30 @@ function drawScreen() {
                     case "w": wr("\u25c2" /* < */); break;
                     default:  wr("\u25cf" /* @ */);
                 }
+                color(7);
+
+            } else if (room) {
+                wc("_");
 
             } else {
-                wr(" ");
+                wc(".");
 
             }
 
-            color(7);
-            if (room.e) {
-                wr(eRoom.w ? fullBlock : rightTriangle);
-            } else if (eRoom.w) {
-                wr(leftTriangle);
+            if (room && room.e) {
+                if (eRoom && eRoom.w)
+                    wc(" ");
+                else
+                    wc(">");
+            } else if (eRoom && eRoom.w) {
+                wc("<");
             } else {
-                wr(" ");
+                wc("+" +
+                   (room ? "1" : "") +
+                   (eRoom ? "2" : "") +
+                   (room ? "3" : "") +
+                   (eRoom ? "4e" : "") +
+                   (room ? "w" : ""));
             }
         }
         cln();
@@ -589,10 +633,10 @@ function drawScreen() {
             for (let x = minX; x <= maxX; x++) {
                 let room = row[x] || {};
                 if (room.s)
-                    wr(downTriangle);
+                    wc("v");
                 else
-                    wr(" ");
-                wr(" ");
+                    wc(" ");
+                wc(" ");
             }
             cln();
             wr("\n");
