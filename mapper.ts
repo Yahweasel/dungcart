@@ -89,6 +89,59 @@ function save() {
     fs.writeFileSync(mapFile, JSON.stringify(map));
 }
 
+/* Validate mins and maxes. Either all (with no options), or a given floor
+ * (with one) or row (with two). */
+function validate(z?: number, y?: number) {
+    if (typeof z === "undefined") {
+        // Validate every floor
+        for (let zs of Object.keys(map)) {
+            z = +zs;
+            validate(z);
+            if (z !== 1) {
+                const floor = map[z];
+                if (floor &&
+                    floor.min === floor.max &&
+                    !floor[floor.min]) {
+                    // Delete this floor
+                    delete map[z];
+                }
+            }
+        }
+        return;
+    }
+
+    const floor = map[z];
+    if (!floor)
+        return;
+
+    if (typeof y === "undefined") {
+        // Validate every row
+        for (y = floor.min; y <= floor.max; y++) {
+            validate(z, y);
+            if (y === floor.min && !floor[y])
+                floor.min++;
+        }
+        for (; floor.max >= floor.min && !floor[floor.max]; floor.max--) {}
+        if (floor.min === floor.max && !floor[floor.min] && z !== 1) {
+            // We can delete this whole floor
+            delete map[z];
+        }
+        return;
+    }
+
+    const row = floor[y];
+    if (!row)
+        return;
+
+    // Validate the min and max
+    for (; row.min <= row.max && !row[row.min]; row.min++) {}
+    for (; row.max >= row.min && !row[row.max]; row.max--) {}
+    if (row.min === row.max && !row[row.min]) {
+        // We can delete this whole row
+        delete floor[y];
+    }
+}
+
 // Create a new floor from scratch
 function newFloor(startY: number, startX: number) {
     let floor: Floor = {
@@ -360,6 +413,7 @@ function main(data: string) {
                 } else {
                     curMode = "x";
                 }
+                validate();
                 save();
             }
             break;
