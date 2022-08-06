@@ -177,7 +177,8 @@ for (let z = minZ; z <= maxZ; z++) {
             if (x === minX) {
                 wc("+" +
                    (nRoom ? "2" : "") +
-                   (room ? "4" : ""));
+                   (room ? "4" : "") +
+                   ((room && room.n && nRoom && nRoom.s) ? "e" : ""));
             }
 
             // North exit
@@ -191,7 +192,9 @@ for (let z = minZ; z <= maxZ; z++) {
             } else {
                 wc("+" +
                    (nRoom ? "12" : "") +
-                   (room ? "34" : ""));
+                   (room ? "34" : "") +
+                   (nRoom ? "n" : "") +
+                   (room ? "s" : ""));
             }
 
             if (room && room.foot) {
@@ -202,7 +205,11 @@ for (let z = minZ; z <= maxZ; z++) {
                    (nRoom ? "1" : "") +
                    (neRoom ? "2" : "") +
                    (room ? "3" : "") +
-                   (eRoom ? "4" : ""));
+                   (eRoom ? "4" : "") +
+                   ((nRoom && nRoom.e && neRoom && neRoom.w) ? "n" : "") +
+                   ((neRoom && neRoom.s && eRoom && eRoom.n) ? "e" : "") +
+                   ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
+                   ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
             }
         }
         wr("\n");
@@ -218,7 +225,7 @@ for (let z = minZ; z <= maxZ; z++) {
                     if (room.w)
                         wc("<");
                     else
-                        wc("+24");
+                        wc("+24e");
                 } else {
                     wc("+");
                 }
@@ -257,7 +264,8 @@ for (let z = minZ; z <= maxZ; z++) {
                    (room ? "1" : "") +
                    (eRoom ? "2" : "") +
                    (room ? "3" : "") +
-                   (eRoom ? "4" : ""));
+                   (eRoom ? "4e" : "") +
+                   (room ? "w" : ""));
             }
         }
         wr("\n");
@@ -276,11 +284,12 @@ for (let z = minZ; z <= maxZ; z++) {
         if (room && room.s)
             wr("v");
         else
-            wc("+" + (room ? "12" : ""));
+            wc("+" + (room ? "12n" : ""));
 
         wc("+" +
            (room ? "1" : "") +
-           (eRoom ? "2" : ""));
+           (eRoom ? "2" : "") +
+           ((room && room.e && eRoom && eRoom.w) ? "n" : ""));
     }
     wr("\n");
 
