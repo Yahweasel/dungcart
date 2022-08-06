@@ -1,4 +1,7 @@
+.*.swp
 *.map
+mapp.js
 mapper.js
+printable.js
 node_modules
 package-lock.json
