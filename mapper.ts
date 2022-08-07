@@ -97,15 +97,6 @@ function validate(z?: number, y?: number) {
         for (const zs of Object.keys(map)) {
             z = +zs;
             validate(z);
-            if (z !== 1) {
-                const floor = map[z];
-                if (floor &&
-                    floor.min === floor.max &&
-                    !floor[floor.min]) {
-                    // Delete this floor
-                    delete map[z];
-                }
-            }
         }
         return;
     }
@@ -123,7 +114,8 @@ function validate(z?: number, y?: number) {
         }
         for (; floor.max >= floor.min && !floor[floor.max]; floor.max--);
         if (floor.max < floor.min) floor.max = floor.min;
-        if (floor.min === floor.max && !floor[floor.min] && z !== 1) {
+        if (z !== 1 && z !== curZ &&
+            floor.min === floor.max && !floor[floor.min]) {
             // We can delete this whole floor
             delete map[z];
         }
