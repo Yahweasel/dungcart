@@ -1,4 +1,5 @@
 #!/bin/sh
+CHARSET="charset/lines.json"
 while true
 do
     clear
@@ -8,5 +9,10 @@ do
     printf '\n'
     read -p 'Map? ' MAP
 
-    ./mapper.js "$MAP".map
+    if expr "$MAP" : 'charset/' > /dev/null 2>&1
+    then
+        CHARSET="$MAP.json"
+    else
+        ./mapper.js "$MAP".map "$CHARSET"
+    fi
 done
