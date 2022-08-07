@@ -3,6 +3,11 @@ const fs = require("fs");
 
 import type {Room, Row, Floor, Mapp} from "./mapp";
 
+if (process.argv.length < 4) {
+    console.error("Use: printable.js <map file> <character set>");
+    process.exit(1);
+}
+
 const map: Mapp = JSON.parse(
     fs.readFileSync(process.argv[2], "utf8")
 );
