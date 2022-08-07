@@ -21,35 +21,6 @@ function wc(def: string) {
     process.stdout.write(charSet[def]);
 }
 
-// Force a room to exist at the given location
-function forceRoom(z, y, x) {
-    if (z < minZ)
-        minZ = z;
-    if (z > maxZ)
-        maxZ = z;
-    let floor = map[z];
-    if (!floor)
-        floor = map[z] = {min: 0, max: 0};
-
-    if (y < floor.min)
-        floor.min = y;
-    if (y > floor.max)
-        floor.max = y;
-    let row = floor[y];
-    if (!row)
-        row = floor[y] = {min: 0, max: 0};
-
-    if (x < row.min)
-        row.min = x;
-    if (x > row.max)
-        row.max = x;
-    let room = row[x];
-    if (!room)
-        room = row[x] = {};
-
-    return room;
-}
-
 // Fetch the room from this location, if it exists
 function fetchRoom(z, y, x) {
     const floor: Floor = map[z] || {min: 0, max: 0};
@@ -83,9 +54,9 @@ function footSym(num) {
 }
 
 // Find the full z range
-for (minZ = 1; map[minZ]; minZ--) {}
+for (minZ = 1; map[minZ]; minZ--);
 minZ++;
-for (maxZ = 1; map[maxZ]; maxZ++) {}
+for (maxZ = 1; map[maxZ]; maxZ++);
 maxZ--;
 
 let footnoteNo = 1;
@@ -103,13 +74,13 @@ for (let z = minZ; z <= maxZ; z++) {
 
             if (room && (room.a || room.u || room.d)) {
                 // This room may need a footnote
-                let footnote: string[] = [];
+                const footnote: string[] = [];
                 if (room.t)
                     footnote.push("Trap");
                 if (room.a)
                     footnote.push("Note: " + room.a);
                 if (room.u) {
-                    let uRoom = fetchRoom(z-1, y, x);
+                    const uRoom = fetchRoom(z-1, y, x);
                     if (uRoom) {
                         if (!uRoom.foot)
                             uRoom.foot = footnoteNo++;
@@ -117,7 +88,7 @@ for (let z = minZ; z <= maxZ; z++) {
                     }
                 }
                 if (room.d) {
-                    let dRoom = fetchRoom(z+1, y, x);
+                    const dRoom = fetchRoom(z+1, y, x);
                     if (dRoom) {
                         if (!dRoom.foot)
                             dRoom.foot = footnoteNo++;

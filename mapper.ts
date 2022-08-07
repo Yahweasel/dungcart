@@ -25,12 +25,12 @@ if (process.argv.length < 3) {
 }
 
 // Input our map file
-let mapFile = process.argv[2];
+const mapFile = process.argv[2];
 let map: Mapp = {};
 
 try {
     map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
-} catch (ex) {}
+} catch (ex) { 0; }
 
 let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false,
     smallMode = false, curDir = n;
@@ -47,7 +47,7 @@ stdin.setRawMode(true);
 stdin.resume();
 stdin.setEncoding("utf8");
 
-let stdinBuffer: string[] = [];
+const stdinBuffer: string[] = [];
 let stdinThen: (data:string)=>unknown = null;
 
 // Handle this data
@@ -94,7 +94,7 @@ function save() {
 function validate(z?: number, y?: number) {
     if (typeof z === "undefined") {
         // Validate every floor
-        for (let zs of Object.keys(map)) {
+        for (const zs of Object.keys(map)) {
             z = +zs;
             validate(z);
             if (z !== 1) {
@@ -121,7 +121,7 @@ function validate(z?: number, y?: number) {
             if (y === floor.min && !floor[y])
                 floor.min++;
         }
-        for (; floor.max >= floor.min && !floor[floor.max]; floor.max--) {}
+        for (; floor.max >= floor.min && !floor[floor.max]; floor.max--);
         if (floor.max < floor.min) floor.max = floor.min;
         if (floor.min === floor.max && !floor[floor.min] && z !== 1) {
             // We can delete this whole floor
@@ -135,9 +135,9 @@ function validate(z?: number, y?: number) {
         return;
 
     // Validate the min and max
-    for (; row.min <= row.max && !row[row.min]; row.min++) {}
+    for (; row.min <= row.max && !row[row.min]; row.min++);
     if (row.min > row.max) row.min = row.max;
-    for (; row.max >= row.min && !row[row.max]; row.max--) {}
+    for (; row.max >= row.min && !row[row.max]; row.max--);
     if (row.max < row.min) row.max = row.min;
     if (row.min === row.max && !row[row.min]) {
         // We can delete this whole row
@@ -147,7 +147,7 @@ function validate(z?: number, y?: number) {
 
 // Create a new floor from scratch
 function newFloor(startY: number, startX: number) {
-    let floor: Floor = {
+    const floor: Floor = {
         min: startY,
         max: startY
     };
@@ -160,13 +160,13 @@ function newFloor(startY: number, startX: number) {
 }
 
 // Move to another room, digging if asked
-function move(dir: Direction, dig: boolean = false) {
-    let row: Row = floor[curY] || {min: 0, max: 0};
-    let room: Room = row[curX] || {};
+function move(dir: Direction, dig = false) {
+    const row: Row = floor[curY] || {min: 0, max: 0};
+    const room: Room = row[curX] || {};
     let ret = false;
-    let nextZ = curZ + dir.z;
-    let nextY = curY + dir.y;
-    let nextX = curX + dir.x;
+    const nextZ = curZ + dir.z;
+    const nextY = curY + dir.y;
+    const nextX = curX + dir.x;
 
     // Digging up and down is quite different
     if (dir.z !== 0) {
@@ -192,19 +192,18 @@ function move(dir: Direction, dig: boolean = false) {
         if (nextY < floor.min) floor.min = nextY;
         if (nextY > floor.max) floor.max = nextY;
     }
-    let nextRow = floor[nextY];
+    const nextRow = floor[nextY];
 
     if (!nextRow[nextX]) {
         if (!dig) return false;
-        let nextRoom: Room = nextRow[nextX] = {};
+        const nextRoom: Room = nextRow[nextX] = {};
         if (nextX < nextRow.min) nextRow.min = nextX;
         if (nextX > nextRow.max) nextRow.max = nextX;
         ret = true;
 
         // Set its opposite exit
         if (dir === u) nextRoom.d = 1;
-        else if (dir === d) {} // maybe pitfall
-        else {
+        else if (dir !== d) {
             room[dir.k] = 1;
             nextRoom[rotate(dir, 2).k] = 1;
         }
@@ -215,8 +214,8 @@ function move(dir: Direction, dig: boolean = false) {
 
 // Toggle an exit in this direction
 function toggleExit(dir: Direction) {
-    let row: Row = floor[curY] || {min: 0, max: 0};
-    let room: Room = row[curX] || {};
+    const row: Row = floor[curY] || {min: 0, max: 0};
+    const room: Room = row[curX] || {};
     if (dir === d) {
         if (room.d) {
             if (room.t) {
@@ -293,14 +292,14 @@ function rotate(dir: Direction, by: number) {
 }
 
 // Set the color
-function color(fg: number = 67, bg: number = 0) {
+function color(fg = 67, bg = 0) {
     fg += 30;
     bg += 40;
     wr("\x1b[m\x1b[" + bg + "m\x1b[" + fg + "m");
 }
 
 // Size of the terminal
-let termSize = {w: 80, h: 25};
+const termSize = {w: 80, h: 25};
 function onResize() {
     termSize.w = process.stdout.columns;
     termSize.h = process.stdout.rows;
@@ -335,18 +334,6 @@ function cln() {
 function cursor(on: boolean) {
     wr("\x1b[?25" + (on?"h":"l"));
 }
-
-// Set or unset bold
-function bold(on: boolean) {
-    wr("\x1b[" + (on?"1":"0") + "m");
-}
-
-// Block drawing characters
-const fullBlock = "\u2588",
-      upTriangle = "\ud83e\udf6f",
-      rightTriangle = "\ud83e\udf6c",
-      downTriangle = "\ud83e\udf6d",
-      leftTriangle = "\ud83e\udf6e";
 
 // Our main input function
 function main(data: string) {
@@ -537,16 +524,16 @@ function drawScreen() {
     if (maxH < 8) maxH = 8;
     let maxW = ~~(termSize.w/2);
     if (maxW < 8) maxW = 8;
-    let minY, minX, endY;
+    let minY, minX;
     {
-        let hh = maxH/2;
+        const hh = maxH/2;
         minY = ~~(curY - hh);
     }
     {
-        let hw = maxW/2;
+        const hw = maxW/2;
         minX = ~~(curX - hw);
     }
-    endY = termSize.h - 3;
+    const endY = termSize.h - 3;
 
     // Draw the floor
     cursor(false);
@@ -558,7 +545,7 @@ function drawScreen() {
     let scY = 1;
     let prevRow: Row = floor[minY-1] || {min: 0, max: 0};
     for (let y = minY;; y++) {
-        let row: Row = floor[y] || {min: 0, max: 0};
+        const row: Row = floor[y] || {min: 0, max: 0};
         let scX = 0;
 
         // North paths first
@@ -728,12 +715,12 @@ function drawScreenSmall() {
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
     {
-        let hh = ~~(maxH/2);
+        const hh = ~~(maxH/2);
         minY = curY - hh;
         maxY = curY + hh - 1;
     }
     {
-        let hw = ~~(maxW/2);
+        const hw = ~~(maxW/2);
         minX = curX - hw;
         maxX = curX + hw - 1;
     }
@@ -781,12 +768,12 @@ function drawScreenSmall() {
     color();
 
     for (let y = minY; y <= maxY; y++) {
-        let row: Row = floor[y] || {min: 0, max: 0};
+        const row: Row = floor[y] || {min: 0, max: 0};
 
         for (let x: number = minX; x <= maxX; x++) {
-            let room: Room = row[x] || {};
+            const room: Room = row[x] || {};
 
-            let ind =
+            const ind =
                 room.n ? (
                     room.e ? (
                         room.s ? (
@@ -838,8 +825,8 @@ function drawScreenSmall() {
 // Edit a note
 function editNote() {
     let note = "";
-    let row: Row = floor[curY] || {min: 0, max: 0};
-    let room: Room = row[curX] || {};
+    const row: Row = floor[curY] || {min: 0, max: 0};
+    const room: Room = row[curX] || {};
 
     wr("\r");
     cln();
