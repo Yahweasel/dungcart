@@ -66,6 +66,7 @@ maxZ--;
 
 let footnoteNo = 1;
 const footnotes: Record<number, string> = {};
+const footnotesInv: Record<string, number> = {};
 
 // Find all the footnotes
 for (let z = minZ; z <= maxZ; z++) {
@@ -102,9 +103,17 @@ for (let z = minZ; z <= maxZ; z++) {
                 }
 
                 if (footnote.length) {
-                    if (!room.foot)
-                        room.foot = footnoteNo++;
-                    footnotes[room.foot] = footnote.join(". ");
+                    // Check if this footnote already exists
+                    const fstr = footnote.join(". ");
+                    if (!room.foot && fstr in footnotesInv) {
+                        room.foot = footnotesInv[fstr];
+                    } else {
+                        // Make it
+                        if (!room.foot)
+                            room.foot = footnoteNo++;
+                        footnotes[room.foot] = fstr;
+                        footnotesInv[fstr] = room.foot;
+                    }
                 }
             }
         }
