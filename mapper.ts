@@ -512,18 +512,18 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = ~~((termSize.h-4)/2);
+    let maxH = Math.floor((termSize.h-4)/2);
     if (maxH < 8) maxH = 8;
-    let maxW = ~~(termSize.w/2);
+    let maxW = Math.floor(termSize.w/2);
     if (maxW < 8) maxW = 8;
     let minY, minX;
     {
         const hh = maxH/2;
-        minY = ~~(curY - hh);
+        minY = Math.floor(curY - hh);
     }
     {
         const hw = maxW/2;
-        minX = ~~(curX - hw);
+        minX = Math.floor(curX - hw);
     }
     const endY = termSize.h - 3;
 
@@ -707,12 +707,12 @@ function drawScreenSmall() {
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
     {
-        const hh = ~~(maxH/2);
+        const hh = Math.floor(maxH/2);
         minY = curY - hh;
         maxY = curY + hh - 1;
     }
     {
-        const hw = ~~(maxW/2);
+        const hw = Math.floor(maxW/2);
         minX = curX - hw;
         maxX = curX + hw - 1;
     }
