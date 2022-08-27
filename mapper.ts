@@ -169,6 +169,11 @@ function move(dir: Direction, dig = false) {
         }
         floor = map[nextZ];
         curZ = nextZ;
+
+        /* Validation always keeps floors active, so validate when we change
+         * floors */
+        validate();
+        save();
     }
 
     curY = nextY;
