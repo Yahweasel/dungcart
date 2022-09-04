@@ -444,6 +444,11 @@ function main(data: string) {
             }
             break;
 
+        case "o": // "oops": fix major problems
+            oopsMenu();
+            // oopsMenu will resume the main loop itself
+            return;
+
         // Help
         case "h":
         case "H":
@@ -858,6 +863,94 @@ function editNote() {
     rd(input);
 }
 
+// The "oops" menu: fix issues with the map
+function oopsMenu() {
+    clear();
+    reset();
+    color();
+    wr(
+`wasd: Move this floor in the given direction.
+WASD: Move all floors in the given direction.
+> `);
+
+    // Fix the X in the given direction
+    function moveX(by: number, allFloors: boolean) {
+        for (const z of Object.keys(map)) {
+            if (!allFloors && +z !== curZ) continue;
+            const floor = map[z];
+
+            for (let y = floor.min; y <= floor.max; y++) {
+                const row = floor[y];
+                if (!row) continue;
+
+                for (let x = (by > 0) ? row.max : row.min;
+                     x >= row.min && x <= row.max;
+                     x -= by) {
+                    if (!row[x])
+                        continue;
+                    row[x + by] = row[x];
+                    delete row[x];
+                }
+                row.min += by;
+                row.max += by;
+            }
+        }
+        validate();
+        save();
+        clear();
+        main("");
+    }
+
+    // Fix by Y in the given direction
+    function moveY(by: number, allFloors: boolean) {
+        for (const z of Object.keys(map)) {
+            if (!allFloors && +z !== curZ) continue;
+            const floor = map[z];
+
+            for (let y = (by > 0) ? floor.max : floor.min;
+                 y >= floor.min && y <= floor.max;
+                 y -= by) {
+                if (!floor[y])
+                    continue;
+                floor[y + by] = floor[y];
+                delete floor[y];
+            }
+            floor.min += by;
+            floor.max += by;
+        }
+        validate();
+        save();
+        clear();
+        main("");
+    }
+
+    function input(data: string) {
+        switch (data) {
+            case "w":
+            case "W":
+                moveY(-1, (data === "W"));
+                break;
+
+            case "a":
+            case "A":
+                moveX(-1, (data === "A"));
+                break;
+
+            case "s":
+            case "S":
+                moveY(1, (data === "S"));
+                break;
+
+            case "d":
+            case "D":
+                moveX(1, (data === "D"));
+                break;
+        }
+    }
+    rd(input);
+}
+
+
 // Help screen
 function help() {
     cursor(false);
@@ -873,6 +966,7 @@ g: Enter paint mode
 e: Edit note
 v: Switch between view sizes
 z: Delete room
+o: "Oops" menu: fix major problems
 q: Quit
 
 Movement: wasd, r = up, f = down
