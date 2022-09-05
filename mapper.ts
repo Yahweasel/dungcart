@@ -527,7 +527,7 @@ function drawScreen() {
                 // Show the note with color instead of text
                 color(62, 2);
             } else if (flag) {
-                color(95, 0);
+                color(65, 0);
             } else {
                 color(62, 0);
             }
