@@ -41,6 +41,10 @@ const charSet: Record<string, string> = JSON.parse(
     fs.readFileSync(process.argv[3] || "charset/lines.json")
 );
 
+// Flags are just in the session, not in the map (for remembering things)
+const flags: Record<number, string> = {};
+const flagsByLoc: Record<string, number> = {};
+
 // We want raw input
 const stdin = process.stdin;
 stdin.setRawMode(true);
@@ -444,6 +448,31 @@ function main(data: string) {
             }
             break;
 
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        {
+            // Flags
+            const flag = data.charCodeAt(0) - ("0").charCodeAt(0);
+            const loc = curZ + "," + curY + "," + curX;
+            if (flagsByLoc[loc]) {
+                const oldFlag = flagsByLoc[loc];
+                delete flags[oldFlag];
+                delete flagsByLoc[loc];
+                if (oldFlag === flag)
+                    break;
+            }
+            if (flags[flag]) {
+                const oldLoc = flags[flag];
+                delete flags[flag];
+                delete flagsByLoc[oldLoc];
+            }
+            flags[flag] = loc;
+            flagsByLoc[loc] = flag;
+            break;
+        }
+
         case "o": // "oops": fix major problems
             oopsMenu();
             // oopsMenu will resume the main loop itself
@@ -490,11 +519,15 @@ function main(data: string) {
 function drawScreen() {
     /* Draw the extra state for this room. Returns true if there was any extra
      * state to draw. */
-    function extraState(room: Room): boolean {
-        if (room && (room.a || room.u || room.d)) {
-            if (room.a && (room.u || room.d)) {
+    function extraState(room: Room, y: number, x: number): boolean {
+        const loc = curZ + "," + y + "," + x;
+        const flag = flagsByLoc[loc];
+        if (room && (room.a || flag || room.u || room.d)) {
+            if ((room.a || flag) && (room.u || room.d)) {
                 // Show the note with color instead of text
                 color(62, 2);
+            } else if (flag) {
+                color(95, 0);
             } else {
                 color(62, 0);
             }
@@ -510,6 +543,9 @@ function drawScreen() {
             return true;
         } else if (room && room.d) {
             wc("d");
+            return true;
+        } else if (flag) {
+            wr(String.fromCharCode(0x30 + flag));
             return true;
         } else if (room && room.a) {
             wc("n");
@@ -595,7 +631,7 @@ function drawScreen() {
                 break;
 
             // If this is where the character is, the NE tile indicates extra state
-            if (y !== curY || x !== curX || !extraState(room)) {
+            if (y !== curY || x !== curX || !extraState(room, y, x)) {
                 wc("+" +
                    (nRoom ? "1" : "") +
                    (neRoom ? "2" : "") +
@@ -657,7 +693,7 @@ function drawScreen() {
                 }
                 color();
 
-            } else if (extraState(room)) {
+            } else if (extraState(room, y, x)) {
                 // Just fix the color back after the extra state
                 color();
 
