@@ -907,6 +907,7 @@ function oopsMenu() {
     wr(
 `wasd: Move this floor in the given direction.
 WASD: Move all floors in the given direction.
+q: Cancel.
 > `);
 
     // Fix the X in the given direction
@@ -980,6 +981,11 @@ WASD: Move all floors in the given direction.
             case "d":
             case "D":
                 moveX(1, (data === "D"));
+                break;
+
+            case "q":
+                clear();
+                main("");
                 break;
         }
     }
