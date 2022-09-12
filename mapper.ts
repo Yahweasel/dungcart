@@ -39,6 +39,13 @@ let curZ = 1, curY = 0, curX = 0, curMode = "x", explDig = false,
     smallMode = false, curDir = n;
 let floor = map[curZ];
 
+if (!floor) {
+    // Need at least a starting floor!
+    floor = map[curZ] = newFloor(0, 0);
+    curMode = "x";
+    explDig = true;
+}
+
 // Character set
 const charSet: Record<string, string> = JSON.parse(
     fs.readFileSync(process.argv[3] || "charset/lines.json")
@@ -220,13 +227,6 @@ function paint() {
             delete nRoom[rdir.k];
         }
     }
-}
-
-if (!map[curZ]) {
-    // Need at least a starting floor!
-    floor = map[curZ] = newFloor(0, 0);
-    curMode = "x";
-    explDig = true;
 }
 
 // Rotations of directions
