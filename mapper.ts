@@ -1136,9 +1136,9 @@ function loopX(x: number) {
     return x;
 }
 
-/* Move an entire room, presumably due to looping, merging it with the target
- * room to the degree that that's possible. Returns true if the move was
- * successful. */
+/* Move an entire room, presumably due to looping, merging it with the
+ * target room to the degree that that's possible. Returns true if the move
+ * was successful. The map must be *validated* and saved after this. */
 function moveRoom(
     fromZ: number, fromY: number, fromX: number,
     toZ: number, toY: number, toX: number
@@ -1161,8 +1161,13 @@ function moveRoom(
         delete map[toZ][toY][toX];
     }
     const toFloor = map[toZ];
-    if (!toFloor[toY])
+    if (!toFloor[toY]) {
         toFloor[toY] = {min: toX, max: toX};
+        if (toY < toFloor.min)
+            toFloor.min = toY;
+        if (toY > toFloor.max)
+            toFloor.max = toY;
+    }
     const toRow = toFloor[toY];
 
     // If there is no to *room*, this is easy; just move it
@@ -1173,8 +1178,6 @@ function moveRoom(
         if (toX > toRow.max)
             toRow.max = toX;
         delete fromRow[fromX];
-        validate();
-        save();
         return true;
     }
 
@@ -1202,13 +1205,12 @@ function moveRoom(
 
     // Delete the old room, now that it's merged
     delete fromRow[fromX];
-    validate();
-    save();
     return true;
 }
 
 // Merge looping rooms on this floor
 function mergeLoop() {
+    let changed = false;
     const loop = floor.loop;
     if (!loop)
         return;
@@ -1225,7 +1227,7 @@ function mergeLoop() {
                 continue;
 
             for (let x = fromRow.min; x <= fromRow.max; x++)
-                moveRoom(curZ, fromY, x, curZ, toY, x);
+                changed = moveRoom(curZ, fromY, x, curZ, toY, x) || changed;
         }
     }
 
@@ -1243,9 +1245,14 @@ function mergeLoop() {
                 const toX = loopX(fromX);
                 if (fromX === toX)
                     continue;
-                moveRoom(curZ, y, fromX, curZ, y, toX);
+                changed = moveRoom(curZ, y, fromX, curZ, y, toX) || changed;
             }
         }
+    }
+
+    if (changed) {
+        validate();
+        save();
     }
 }
 
