@@ -260,7 +260,8 @@ function paint() {
 if (!map[curZ]) {
     // Need at least a starting floor!
     floor = map[curZ] = newFloor(0, 0);
-    curMode = "d";
+    curMode = "x";
+    explDig = true;
 }
 
 // Rotations of directions
@@ -358,14 +359,6 @@ function main(data: string) {
         case "r": // up
         case "f": // down
             switch (curMode + data) {
-                // digging
-                case "dw": toggleExit(curDir); save(); break;
-                case "da": toggleExit(rotate(curDir, -1)); save(); break;
-                case "ds": toggleExit(rotate(curDir, 2)); save(); break;
-                case "dd": toggleExit(rotate(curDir, 1)); save(); break;
-                case "dr": toggleExit(u); save(); break;
-                case "df": toggleExit(d); save(); break;
-
                 // exploring
                 case "xw": move(curDir, explDig); if (explDig) save(); break;
                 case "xa": curDir = rotate(curDir, -1); break;
@@ -404,8 +397,6 @@ function main(data: string) {
             delete floor[curY][curX];
             if (curMode === "p") {
                 paint();
-            } else {
-                curMode = "x";
             }
             validate();
             save();
@@ -422,16 +413,16 @@ function main(data: string) {
             break;
 
         case "t": // read mode
-            curMode = "r";
+            curMode = (curMode === "r") ? "x" : "r";
             break;
 
         case "g": // paint mode
-            curMode = "p";
+            curMode = (curMode === "p") ? "x" : "p";
             break;
 
         case " ": // mode change
             if (curMode === "x") {
-                curMode = "d";
+                explDig = !explDig;
             } else {
                 curMode = "x";
                 explDig = false;
@@ -509,8 +500,7 @@ function main(data: string) {
     // And the current mode
     cln();
     switch (curMode) {
-        case "x": wr("Exploring" + (explDig ? " + digging" : "") + "\n"); break;
-        case "d": wr("Digging\n"); break;
+        case "x": wr((explDig ? "Digging" : "Exploring") + "\n"); break;
         case "r": wr("Reading\n"); break;
         case "p": wr("Painting\n"); break;
         default: wr("???\n"); break;
@@ -1251,14 +1241,15 @@ function help() {
     color();
     wr(
 `Help:
-space: Toggle between explore and dig modes
-x: Enter explore+dig mode
-t: Enter read mode
-g: Enter paint mode
+space: Enter/exit explore mode
+x: Enter/exit digging mode
+t: Enter/exit read mode
+g: Enter/exit paint mode
 e: Edit note
 v: Switch between view sizes
 z: Delete room
 o: "Oops" menu: fix major problems
+l: Loop menu, set floor looping parameters
 q: Quit
 
 Movement: wasd, r = up, f = down
