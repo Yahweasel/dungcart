@@ -1267,19 +1267,17 @@ v: Switch between view sizes
 z: Delete room
 o: "Oops" menu: fix major problems
 l: Loop menu, set floor looping parameters
+1-4: Place/unplace flags 1-4
 q: Quit
 
 Movement: wasd, r = up, f = down
 Explore: Move directionally
-Explore+dig: Move directionally, create new
-             rooms
-Dig: Creates or removes exits in specified
-     direction
+Digging: Move directionally, create new rooms
 Read: Move in absolute directions
 Paint: Move in absolute directions, painting
        rooms
 
-Shift+wasdrf: Always digs\n`);
+Shift+wasdrf: Digs exits\n`);
     cursor(true);
     rd(() => main(""));
 }
