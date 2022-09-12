@@ -1,5 +1,6 @@
 .*.swp
 *.map
+io.js
 mapp.js
 mapper.js
 printable.js

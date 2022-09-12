@@ -1,14 +1,22 @@
-all: mapper.js printable.js
+JS=\
+	io.js \
+	mapper.js \
+	printable.js
 
-%.js: %.ts mapp.ts node_modules/.bin/tsc
+all: $(JS)
+	chmod a+x mapper.js
+	chmod a+x printable.js
+
+%.js: %.ts node_modules/.bin/tsc
 	node_modules/.bin/tsc $<
-	chmod a+x $@
 
 node_modules/.bin/tsc:
 	npm install
 
 clean:
-	rm -f mapper.js printable.js mapp.js
+	rm -f $(JS)
 
 distclean: clean
 	rm -rf node_modules package-lock.json
+
+mapper.ts: io.ts mapp.ts

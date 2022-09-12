@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 const fs = require("fs");
 
+const io = require("./io.js");
+const { wr } = io;
+
 import type {Room, Row, Floor, Mapp} from "./mapp";
 
 interface Direction {
@@ -45,43 +48,9 @@ const charSet: Record<string, string> = JSON.parse(
 const flags: Record<number, string> = {};
 const flagsByLoc: Record<string, number> = {};
 
-// We want raw input
-const stdin = process.stdin;
-stdin.setRawMode(true);
-stdin.resume();
-stdin.setEncoding("utf8");
-
-// Handle stdin through a buffer
-const stdinBuffer: string[] = [];
-let stdinThen: (value: unknown)=>unknown = null;
-
-// Handle this data
-function stdinHandler(data: string) {
-    for (let di = 0; di < data.length; di++)
-        stdinBuffer.push(data[di]);
-    if (stdinThen) {
-        const then = stdinThen;
-        stdinThen = null;
-        then(null);
-    }
-}
-stdin.on("data", stdinHandler);
-
-// Read a character from stdin
-async function rd() {
-    while (!stdinBuffer.length)
-        await new Promise(res => stdinThen = res);
-    return stdinBuffer.shift();
-}
-
-// Write to stdout
-function wr(text: string) {
-    process.stdout.write(text);
-}
-
 // Write from the character set to stdout
 function wc(def: string) {
-    process.stdout.write(charSet[def]);
+    io.wr(charSet[def]);
 }
 
 // Save the current map
@@ -293,54 +262,10 @@ function rotate(dir: Direction, by: number) {
     return n;
 }
 
-// Set the color
-function color(fg = 67, bg = 0) {
-    fg += 30;
-    bg += 40;
-    wr("\x1b[m\x1b[" + bg + "m\x1b[" + fg + "m");
-}
-
-// Size of the terminal
-const termSize = {w: 80, h: 25};
-function onResize() {
-    termSize.w = process.stdout.columns;
-    termSize.h = process.stdout.rows;
-}
-if (process.stdout.isTTY) {
-    process.stdout.on("resize", onResize);
-    onResize();
-}
-
-// Reset our screen position
-function reset() {
-    color();
-    wr("\x1b[H");
-}
-
-// Clear the screen
-function clear() {
-    wr("\x1b[2J");
-}
-
-// Clear the REST of the screen
-function clr() {
-    wr("\x1b[J");
-}
-
-// Clear the line
-function cln() {
-    wr("\x1b[K");
-}
-
-// Show or hide the cursor
-function cursor(on: boolean) {
-    wr("\x1b[?25" + (on?"h":"l"));
-}
-
 // The main interface
 async function main() {
-    clear();
-    cursor(false);
+    io.clear();
+    io.cursor(false);
 
     while (true) {
         // Validate the location
@@ -353,14 +278,14 @@ async function main() {
         const curRoom = smallMode ? drawScreenSmall() : drawScreen();
 
         // Write anything about the current room
-        cln();
-        color();
+        io.cln();
+        io.color();
         if (curRoom.a)
             wr("Note: " + curRoom.a);
         wr("\n");
 
         // And the current mode
-        cln();
+        io.cln();
         switch (curMode) {
             case "x": wr((explDig ? "Digging" : "Exploring") + "\n"); break;
             case "r": wr("Reading\n"); break;
@@ -369,15 +294,17 @@ async function main() {
         }
 
         // And request input
-        clr();
+        io.clr();
         wr("> ");
-        cursor(true);
-        const data = await rd();
-        cursor(false);
+        io.cursor(true);
+        const data = await io.rd();
+        io.cursor(false);
 
         if (data === "\x03" || data === "q") {
             // ctrl+C or quit
-            wr("\n");
+            io.clear();
+            io.reset();
+            io.cursor(true);
             process.exit(0);
         }
 
@@ -396,24 +323,24 @@ async function main() {
                     case "xa": curDir = rotate(curDir, -1); break;
                     case "xs": curDir = rotate(curDir, 2); break;
                     case "xd": curDir = rotate(curDir, 1); break;
-                    case "xr": move(u, explDig); clear(); if (explDig) save(); break;
-                    case "xf": move(d, explDig); clear(); if (explDig) save(); break;
+                    case "xr": move(u, explDig); io.clear(); if (explDig) save(); break;
+                    case "xf": move(d, explDig); io.clear(); if (explDig) save(); break;
 
                     // painting
                     case "pw": move(n, true); paint(); save(); break;
                     case "pa": move(w, true); paint(); save(); break;
                     case "ps": move(s, true); paint(); save(); break;
                     case "pd": move(e, true); paint(); save(); break;
-                    case "pr": move(u, true); paint(); clear(); save(); break;
-                    case "pf": move(d, true); paint(); clear(); save(); break;
+                    case "pr": move(u, true); paint(); io.clear(); save(); break;
+                    case "pf": move(d, true); paint(); io.clear(); save(); break;
 
                     // reading
                     case "rw": move(n, false); break;
                     case "ra": move(w, false); break;
                     case "rs": move(s, false); break;
                     case "rd": move(e, false); break;
-                    case "rr": move(u, false); clear(); break;
-                    case "rf": move(d, false); clear(); break;
+                    case "rr": move(u, false); io.clear(); break;
+                    case "rf": move(d, false); io.clear(); break;
                 }
                 break;
 
@@ -522,11 +449,11 @@ function drawScreen() {
         if (room && (room.a || flag || room.u || room.d)) {
             if ((room.a || flag) && (room.u || room.d)) {
                 // Show the note with color instead of text
-                color(62, 2);
+                io.color(62, 2);
             } else if (flag) {
-                color(65, 0);
+                io.color(65, 0);
             } else {
-                color(62, 0);
+                io.color(62, 0);
             }
         }
         if (room && room.t) {
@@ -555,9 +482,9 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = Math.floor((termSize.h-4)/2);
+    let maxH = Math.floor((io.termSize.h-4)/2);
     if (maxH < 8) maxH = 8;
-    let maxW = Math.floor(termSize.w/2);
+    let maxW = Math.floor(io.termSize.w/2);
     if (maxW < 8) maxW = 8;
     let minY, minX;
     {
@@ -568,14 +495,14 @@ function drawScreen() {
         const hw = maxW/2;
         minX = Math.floor(curX - hw);
     }
-    const endY = termSize.h - 3;
+    const endY = io.termSize.h - 3;
 
     // Draw the floor
     const loop = floor.loop || {};
-    reset();
-    cln();
+    io.reset();
+    io.cln();
     wr(`Floor ${curZ} `);
-    color(4);
+    io.color(4);
     wr(`(${curX}, ${-curY})\n`);
     let scY = 1;
     let prevRow: Row = floor[minY-1] || floor[loopY(minY-1)] ||
@@ -594,11 +521,11 @@ function drawScreen() {
             const neRoom = prevRow[ax+1] || prevRow[loopX(ax+1)];
 
             if (ay === y && ax === x)
-                color();
+                io.color();
             else if (room && (row === floor[ay] && room === row[ax]))
-                color(61);
+                io.color(61);
             else
-                color(60);
+                io.color(60);
 
             // NW tile
             if (ax === minX) {
@@ -613,7 +540,7 @@ function drawScreen() {
                    ((nRoom && nRoom.s && room && room.n) ? "e" : "") +
                    ((room && room.w && wRoom && wRoom.e) ? "s" : "") +
                    ((wRoom && wRoom.n && nwRoom && nwRoom.s) ? "w" : ""));
-                if (++scX >= termSize.w)
+                if (++scX >= io.termSize.w)
                     break;
             }
 
@@ -632,7 +559,7 @@ function drawScreen() {
                    (nRoom ? "n" : "") +
                    (room ? "s" : ""));
             }
-            if (++scX >= termSize.w)
+            if (++scX >= io.termSize.w)
                 break;
 
             // If this is where the character is, the NE tile indicates extra state
@@ -647,10 +574,10 @@ function drawScreen() {
                    ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
                    ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
             }
-            if (++scX >= termSize.w)
+            if (++scX >= io.termSize.w)
                 break;
         }
-        cln();
+        io.cln();
         wr("\n");
         if (++scY >= endY)
             break;
@@ -667,7 +594,7 @@ function drawScreen() {
                 fg = 67;
             else if (room && (row === floor[ay] && room === row[ax]))
                 fg = 61;
-            color(fg);
+            io.color(fg);
 
             if (ax === minX) {
                 const wRoom = row[ax-1] || row[loopX(ax-1)];
@@ -686,12 +613,12 @@ function drawScreen() {
                        (room ? "4e" : "") +
                        (wRoom ? "w" : ""));
                 }
-                if (++scX >= termSize.w)
+                if (++scX >= io.termSize.w)
                     break;
             }
 
             if (ay === curY && ax === curX) {
-                color(1);
+                io.color(1);
                 // This is our current room, so indicate it
                 curRoom = room || {};
                 if (curMode === "r" || curMode === "p")
@@ -703,11 +630,11 @@ function drawScreen() {
                     case "w": wr("\u25c2" /* < */); break;
                     default:  wr("\u25cf" /* @ */);
                 }
-                color(fg);
+                io.color(fg);
 
             } else if (extraState(room, y, x)) {
                 // Just fix the color
-                color(fg);
+                io.color(fg);
 
             } else if (room) {
                 wc("_");
@@ -716,7 +643,7 @@ function drawScreen() {
                 wc(".");
 
             }
-            if (++scX >= termSize.w)
+            if (++scX >= io.termSize.w)
                 break;
 
             if (room && room.e) {
@@ -734,10 +661,10 @@ function drawScreen() {
                    (eRoom ? "4e" : "") +
                    (room ? "w" : ""));
             }
-            if (++scX >= termSize.w)
+            if (++scX >= io.termSize.w)
                 break;
         }
-        cln();
+        io.cln();
         wr("\n");
         if (++scY >= endY)
             break;
@@ -745,8 +672,8 @@ function drawScreen() {
         prevRow = row;
     }
 
-    for (; scY < termSize.h - 5; scY++) {
-        cln();
+    for (; scY < io.termSize.h - 5; scY++) {
+        io.cln();
         wr("\n");
     }
 
@@ -759,9 +686,9 @@ function drawScreenSmall() {
     const curRoom: Room = curRow[curX] || {};
 
     // Figure out our display ranges
-    let maxH = termSize.h-4;
+    let maxH = io.termSize.h-4;
     if (maxH < 8) maxH = 8;
-    let maxW = termSize.w-1;
+    let maxW = io.termSize.w-1;
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
     {
@@ -776,12 +703,12 @@ function drawScreenSmall() {
     }
 
     // Draw the floor indicator
-    reset();
-    color();
-    cln();
+    io.reset();
+    io.color();
+    io.cln();
     wr(`Floor ${curZ} `);
     // FIXME: duplication
-    color(1);
+    io.color(1);
     if (curMode === "r" || curMode === "p")
         wr("\u25cf" /* @ */);
     else switch (curDir.k) {
@@ -793,9 +720,9 @@ function drawScreenSmall() {
     }
     wr(" ");
     if (curRoom.a && (curRoom.u || curRoom.d)) {
-        color(62, 2);
+        io.color(62, 2);
     } else {
-        color(2);
+        io.color(2);
     }
     if (curRoom.u) {
         if (curRoom.d)
@@ -812,9 +739,9 @@ function drawScreenSmall() {
     } else {
         wr(" ");
     }
-    color(4);
+    io.color(4);
     wr(` (${curX}, ${-curY})\n`);
-    color();
+    io.color();
 
     for (let ay = minY; ay <= maxY; ay++) {
         const y = loopY(ay);
@@ -868,11 +795,11 @@ function drawScreenSmall() {
                 bg += 1;
             if (room.a || room.u || room.d)
                 bg += 2;
-            color(fg, bg);
+            io.color(fg, bg);
             wr(ind);
         }
-        color();
-        cln();
+        io.color();
+        io.cln();
         wr("\n");
     }
 
@@ -886,12 +813,12 @@ async function editNote() {
     const room: Room = row[curX] || {};
 
     wr("\r");
-    cln();
+    io.cln();
     wr("Note: ");
 
-    cursor(true);
+    io.cursor(true);
     while (true) {
-        const data = await rd();
+        const data = await io.rd();
         if (data === "\n" || data === "\r") {
             // End of line
             if (note === "")
@@ -905,7 +832,7 @@ async function editNote() {
             // backspace
             note = note.slice(0, note.length - 1);
             wr("\rNote: " + note);
-            cln();
+            io.cln();
 
         } else if (data === "\x03") {
             // ctrl+C
@@ -917,15 +844,15 @@ async function editNote() {
 
         }
     }
-    cursor(false);
-    clear();
+    io.cursor(false);
+    io.clear();
 }
 
 // The "oops" menu: fix issues with the map
 async function oopsMenu() {
-    clear();
-    reset();
-    color();
+    io.clear();
+    io.reset();
+    io.color();
     wr(
 `wasd: Move this floor in the given direction.
 WASD: Move all floors in the given direction.
@@ -979,9 +906,9 @@ q: Cancel.
         save();
     }
 
-    cursor(true);
-    const data = await rd();
-    cursor(false);
+    io.cursor(true);
+    const data = await io.rd();
+    io.cursor(false);
     switch (data) {
         case "w":
         case "W":
@@ -1004,7 +931,7 @@ q: Cancel.
             break;
     }
 
-    clear();
+    io.clear();
 }
 
 // The loop menu
@@ -1026,9 +953,9 @@ async function loopMenu() {
     const loopStr = loopStatus.join(", ");
 
     // Display the menu
-    clear();
-    reset();
-    color();
+    io.clear();
+    io.reset();
+    io.color();
     wr(
 `wasd: Set loop point.
 WASD: Rotate rooms within the loop points.
@@ -1060,9 +987,9 @@ Current loop status: ${loopStr || "non-looping"}
         save();
     }
 
-    cursor(true);
-    const data = await rd();
-    cursor(false);
+    io.cursor(true);
+    const data = await io.rd();
+    io.cursor(false);
     switch (data) {
         case "w":
             setLoop("n");
@@ -1087,7 +1014,7 @@ Current loop status: ${loopStr || "non-looping"}
             break;
     }
 
-    clear();
+    io.clear();
 }
 
 // Get a Y location with looping in mind
@@ -1243,9 +1170,9 @@ function mergeLoop() {
 
 // Help screen
 async function help() {
-    clear();
-    reset();
-    color();
+    io.clear();
+    io.reset();
+    io.color();
     wr(
 `Help:
 space: Enter/exit explore mode
@@ -1268,7 +1195,7 @@ Paint: Move in absolute directions, painting
        rooms
 
 Shift+wasdrf: Digs exits\n`);
-    await rd();
+    await io.rd();
 }
 
 main();
