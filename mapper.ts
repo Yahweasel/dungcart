@@ -51,31 +51,27 @@ stdin.setRawMode(true);
 stdin.resume();
 stdin.setEncoding("utf8");
 
+// Handle stdin through a buffer
 const stdinBuffer: string[] = [];
-let stdinThen: (data:string)=>unknown = null;
+let stdinThen: (value: unknown)=>unknown = null;
 
 // Handle this data
 function stdinHandler(data: string) {
-    for (let di = 0; di < data.length; di++) {
+    for (let di = 0; di < data.length; di++)
         stdinBuffer.push(data[di]);
-        if (stdinThen) {
-            const then = stdinThen;
-            stdinThen = null;
-            then(stdinBuffer.shift());
-        }
+    if (stdinThen) {
+        const then = stdinThen;
+        stdinThen = null;
+        then(null);
     }
 }
 stdin.on("data", stdinHandler);
 
-// Read a character from stdin then do something
-function rd(then: (data:string)=>unknown) {
-    if (stdinBuffer.length) {
-        then(stdinBuffer.shift());
-    } else {
-        if (stdinThen)
-            throw new Error();
-        stdinThen = then;
-    }
+// Read a character from stdin
+async function rd() {
+    while (!stdinBuffer.length)
+        await new Promise(res => stdinThen = res);
+    return stdinBuffer.shift();
 }
 
 // Write to stdout
@@ -341,177 +337,179 @@ function cursor(on: boolean) {
     wr("\x1b[?25" + (on?"h":"l"));
 }
 
-// Our main input function
-function main(data: string) {
-    if (data === "\x03" || data === "q") {
-        // ctrl+C or quit
-        wr("\n");
-        process.exit(0);
-    }
+// The main interface
+async function main() {
+    clear();
+    cursor(false);
 
-    // Perform the requested action
-    switch (data) {
-        // Movement
-        case "w":
-        case "a":
-        case "s":
-        case "d":
-        case "r": // up
-        case "f": // down
-            switch (curMode + data) {
-                // exploring
-                case "xw": move(curDir, explDig); if (explDig) save(); break;
-                case "xa": curDir = rotate(curDir, -1); break;
-                case "xs": curDir = rotate(curDir, 2); break;
-                case "xd": curDir = rotate(curDir, 1); break;
-                case "xr": move(u, explDig); clear(); if (explDig) save(); break;
-                case "xf": move(d, explDig); clear(); if (explDig) save(); break;
-
-                // painting
-                case "pw": move(n, true); paint(); save(); break;
-                case "pa": move(w, true); paint(); save(); break;
-                case "ps": move(s, true); paint(); save(); break;
-                case "pd": move(e, true); paint(); save(); break;
-                case "pr": move(u, true); paint(); clear(); save(); break;
-                case "pf": move(d, true); paint(); clear(); save(); break;
-
-                // reading
-                case "rw": move(n, false); break;
-                case "ra": move(w, false); break;
-                case "rs": move(s, false); break;
-                case "rd": move(e, false); break;
-                case "rr": move(u, false); clear(); break;
-                case "rf": move(d, false); clear(); break;
-            }
-            break;
-
-        // Digging
-        case "W": toggleExit(curDir); save(); break;
-        case "A": toggleExit(rotate(curDir, -1)); save(); break;
-        case "S": toggleExit(rotate(curDir, 2)); save(); break;
-        case "D": toggleExit(rotate(curDir, 1)); save(); break;
-        case "R": toggleExit(u); save(); break;
-        case "F": toggleExit(d); save(); break;
-
-        case "z": // delete
-            delete floor[curY][curX];
-            if (curMode === "p") {
-                paint();
-            }
-            validate();
-            save();
-            break;
-
-        case "e": // edit note
-            editNote();
-
-            // editNote will resume the main loop itself
-            return;
-
-        case "v": // small mode
-            smallMode = !smallMode;
-            break;
-
-        case "t": // read mode
-            curMode = (curMode === "r") ? "x" : "r";
-            break;
-
-        case "g": // paint mode
-            curMode = (curMode === "p") ? "x" : "p";
-            break;
-
-        case " ": // mode change
-            if (curMode === "x") {
-                explDig = !explDig;
-            } else {
-                curMode = "x";
-                explDig = false;
-            }
-            break;
-
-        case "x": // activate explore + dig
-            if (curMode === "x") {
-                explDig = !explDig;
-            } else {
-                curMode = "x";
-                explDig = true;
-            }
-            break;
-
-        case "1":
-        case "2":
-        case "3":
-        case "4":
-        {
-            // Flags
-            const flag = data.charCodeAt(0) - ("0").charCodeAt(0);
-            const loc = curZ + "," + curY + "," + curX;
-            if (flagsByLoc[loc]) {
-                const oldFlag = flagsByLoc[loc];
-                delete flags[oldFlag];
-                delete flagsByLoc[loc];
-                if (oldFlag === flag)
-                    break;
-            }
-            if (flags[flag]) {
-                const oldLoc = flags[flag];
-                delete flags[flag];
-                delete flagsByLoc[oldLoc];
-            }
-            flags[flag] = loc;
-            flagsByLoc[loc] = flag;
-            break;
+    while (true) {
+        // Validate the location
+        if (curMode !== "r") {
+            curY = loopY(curY);
+            curX = loopX(curX);
         }
 
-        case "o": // "oops": fix major problems
-            oopsMenu();
-            // oopsMenu will resume the main loop itself
-            return;
+        // Draw the screen
+        const curRoom = smallMode ? drawScreenSmall() : drawScreen();
 
-        case "l": // loop menu
-            loopMenu();
-            return;
+        // Write anything about the current room
+        cln();
+        color();
+        if (curRoom.a)
+            wr("Note: " + curRoom.a);
+        wr("\n");
 
-        // Help
-        case "h":
-        case "H":
-        case "/":
-        case "?":
-            help();
-            return;
+        // And the current mode
+        cln();
+        switch (curMode) {
+            case "x": wr((explDig ? "Digging" : "Exploring") + "\n"); break;
+            case "r": wr("Reading\n"); break;
+            case "p": wr("Painting\n"); break;
+            default: wr("???\n"); break;
+        }
+
+        // And request input
+        clr();
+        wr("> ");
+        cursor(true);
+        const data = await rd();
+        cursor(false);
+
+        if (data === "\x03" || data === "q") {
+            // ctrl+C or quit
+            wr("\n");
+            process.exit(0);
+        }
+
+        // Perform the requested action
+        switch (data) {
+            // Movement
+            case "w":
+            case "a":
+            case "s":
+            case "d":
+            case "r": // up
+            case "f": // down
+                switch (curMode + data) {
+                    // exploring
+                    case "xw": move(curDir, explDig); if (explDig) save(); break;
+                    case "xa": curDir = rotate(curDir, -1); break;
+                    case "xs": curDir = rotate(curDir, 2); break;
+                    case "xd": curDir = rotate(curDir, 1); break;
+                    case "xr": move(u, explDig); clear(); if (explDig) save(); break;
+                    case "xf": move(d, explDig); clear(); if (explDig) save(); break;
+
+                    // painting
+                    case "pw": move(n, true); paint(); save(); break;
+                    case "pa": move(w, true); paint(); save(); break;
+                    case "ps": move(s, true); paint(); save(); break;
+                    case "pd": move(e, true); paint(); save(); break;
+                    case "pr": move(u, true); paint(); clear(); save(); break;
+                    case "pf": move(d, true); paint(); clear(); save(); break;
+
+                    // reading
+                    case "rw": move(n, false); break;
+                    case "ra": move(w, false); break;
+                    case "rs": move(s, false); break;
+                    case "rd": move(e, false); break;
+                    case "rr": move(u, false); clear(); break;
+                    case "rf": move(d, false); clear(); break;
+                }
+                break;
+
+            // Digging
+            case "W": toggleExit(curDir); save(); break;
+            case "A": toggleExit(rotate(curDir, -1)); save(); break;
+            case "S": toggleExit(rotate(curDir, 2)); save(); break;
+            case "D": toggleExit(rotate(curDir, 1)); save(); break;
+            case "R": toggleExit(u); save(); break;
+            case "F": toggleExit(d); save(); break;
+
+            case "z": // delete
+                delete floor[curY][curX];
+                if (curMode === "p") {
+                    paint();
+                }
+                validate();
+                save();
+                break;
+
+            case "e": // edit note
+                await editNote();
+                break;
+
+            case "v": // small mode
+                smallMode = !smallMode;
+                break;
+
+            case "t": // read mode
+                curMode = (curMode === "r") ? "x" : "r";
+                break;
+
+            case "g": // paint mode
+                curMode = (curMode === "p") ? "x" : "p";
+                break;
+
+            case " ": // mode change
+                if (curMode === "x") {
+                    explDig = !explDig;
+                } else {
+                    curMode = "x";
+                    explDig = false;
+                }
+                break;
+
+            case "x": // activate explore + dig
+                if (curMode === "x") {
+                    explDig = !explDig;
+                } else {
+                    curMode = "x";
+                    explDig = true;
+                }
+                break;
+
+            case "1":
+            case "2":
+            case "3":
+            case "4":
+            {
+                // Flags
+                const flag = data.charCodeAt(0) - ("0").charCodeAt(0);
+                const loc = curZ + "," + curY + "," + curX;
+                if (flagsByLoc[loc]) {
+                    const oldFlag = flagsByLoc[loc];
+                    delete flags[oldFlag];
+                    delete flagsByLoc[loc];
+                    if (oldFlag === flag)
+                        break;
+                }
+                if (flags[flag]) {
+                    const oldLoc = flags[flag];
+                    delete flags[flag];
+                    delete flagsByLoc[oldLoc];
+                }
+                flags[flag] = loc;
+                flagsByLoc[loc] = flag;
+                break;
+            }
+
+            case "o": // "oops": fix major problems
+                await oopsMenu();
+                break;
+
+            case "l": // loop menu
+                await loopMenu();
+                break;
+
+            // Help
+            case "h":
+            case "H":
+            case "/":
+            case "?":
+                await help();
+                break;
+        }
     }
-
-    // Validate the location
-    if (curMode !== "r") {
-        curY = loopY(curY);
-        curX = loopX(curX);
-    }
-
-    // Draw the screen
-    const curRoom = smallMode ? drawScreenSmall() : drawScreen();
-
-    // Write anything about the current room
-    cln();
-    color();
-    if (curRoom.a)
-        wr("Note: " + curRoom.a);
-    wr("\n");
-
-    // And the current mode
-    cln();
-    switch (curMode) {
-        case "x": wr((explDig ? "Digging" : "Exploring") + "\n"); break;
-        case "r": wr("Reading\n"); break;
-        case "p": wr("Painting\n"); break;
-        default: wr("???\n"); break;
-    }
-
-    // And request input
-    clr();
-    wr("> ");
-    cursor(true);
-
-    rd(main);
 }
 
 // Draw the map part of the screen
@@ -574,7 +572,6 @@ function drawScreen() {
 
     // Draw the floor
     const loop = floor.loop || {};
-    cursor(false);
     reset();
     cln();
     wr(`Floor ${curZ} `);
@@ -779,7 +776,6 @@ function drawScreenSmall() {
     }
 
     // Draw the floor indicator
-    cursor(false);
     reset();
     color();
     cln();
@@ -884,7 +880,7 @@ function drawScreenSmall() {
 }
 
 // Edit a note
-function editNote() {
+async function editNote() {
     let note = "";
     const row: Row = floor[curY] || {min: 0, max: 0};
     const room: Room = row[curX] || {};
@@ -892,9 +888,10 @@ function editNote() {
     wr("\r");
     cln();
     wr("Note: ");
-    cursor(true);
 
-    function input(data: string) {
+    cursor(true);
+    while (true) {
+        const data = await rd();
         if (data === "\n" || data === "\r") {
             // End of line
             if (note === "")
@@ -902,28 +899,30 @@ function editNote() {
             else
                 room.a = note;
             save();
-            clear();
-            main("");
+            break;
+
         } else if (data === "\x7f") {
             // backspace
             note = note.slice(0, note.length - 1);
             wr("\rNote: " + note);
             cln();
-            rd(input);
+
         } else if (data === "\x03") {
             // ctrl+C
             process.exit(0);
+
         } else {
             wr(data);
             note += data;
-            rd(input);
+
         }
     }
-    rd(input);
+    cursor(false);
+    clear();
 }
 
 // The "oops" menu: fix issues with the map
-function oopsMenu() {
+async function oopsMenu() {
     clear();
     reset();
     color();
@@ -957,8 +956,6 @@ q: Cancel.
         }
         validate();
         save();
-        clear();
-        main("");
     }
 
     // Fix by Y in the given direction
@@ -980,43 +977,38 @@ q: Cancel.
         }
         validate();
         save();
-        clear();
-        main("");
     }
 
-    function input(data: string) {
-        switch (data) {
-            case "w":
-            case "W":
-                moveY(-1, (data === "W"));
-                break;
+    cursor(true);
+    const data = await rd();
+    cursor(false);
+    switch (data) {
+        case "w":
+        case "W":
+            moveY(-1, (data === "W"));
+            break;
 
-            case "a":
-            case "A":
-                moveX(-1, (data === "A"));
-                break;
+        case "a":
+        case "A":
+            moveX(-1, (data === "A"));
+            break;
 
-            case "s":
-            case "S":
-                moveY(1, (data === "S"));
-                break;
+        case "s":
+        case "S":
+            moveY(1, (data === "S"));
+            break;
 
-            case "d":
-            case "D":
-                moveX(1, (data === "D"));
-                break;
-
-            default:
-                clear();
-                main("");
-                break;
-        }
+        case "d":
+        case "D":
+            moveX(1, (data === "D"));
+            break;
     }
-    rd(input);
+
+    clear();
 }
 
 // The loop menu
-function loopMenu() {
+async function loopMenu() {
     // Get the loop status for display
     const loopStatus: string[] = [];
     if (floor.loop) {
@@ -1066,44 +1058,36 @@ Current loop status: ${loopStr || "non-looping"}
         mergeLoop();
         validate();
         save();
-        // FIXME: Resolve loop issues
-        clear();
-        main("");
     }
 
-    function input(data: string) {
-        switch (data) {
-            case "w":
-                setLoop("n");
-                break;
+    cursor(true);
+    const data = await rd();
+    cursor(false);
+    switch (data) {
+        case "w":
+            setLoop("n");
+            break;
 
-            case "a":
-                setLoop("w");
-                break;
+        case "a":
+            setLoop("w");
+            break;
 
-            case "s":
-                setLoop("s");
-                break;
+        case "s":
+            setLoop("s");
+            break;
 
-            case "d":
-                setLoop("e");
-                break;
+        case "d":
+            setLoop("e");
+            break;
 
-            case "z":
-                delete floor.loop;
-                validate();
-                save();
-                clear();
-                main("");
-                break;
-
-            default:
-                clear();
-                main("");
-                break;
-        }
+        case "z":
+            delete floor.loop;
+            validate();
+            save();
+            break;
     }
-    rd(input);
+
+    clear();
 }
 
 // Get a Y location with looping in mind
@@ -1258,8 +1242,7 @@ function mergeLoop() {
 
 
 // Help screen
-function help() {
-    cursor(false);
+async function help() {
     clear();
     reset();
     color();
@@ -1285,9 +1268,7 @@ Paint: Move in absolute directions, painting
        rooms
 
 Shift+wasdrf: Digs exits\n`);
-    cursor(true);
-    rd(() => main(""));
+    await rd();
 }
 
-clear();
-main("");
+main();
