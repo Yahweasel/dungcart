@@ -606,9 +606,10 @@ function drawScreen() {
             const eRoom = row[ax+1] || row[loopX(ax+1)];
             const neRoom = prevRow[ax+1] || prevRow[loopX(ax+1)];
 
-            if (ay === y && ax === x ||
-                room && (row === floor[ay] && room === row[ax]))
+            if (ay === y && ax === x)
                 color();
+            else if (room && (row === floor[ay] && room === row[ax]))
+                color(61);
             else
                 color(60);
 
@@ -673,11 +674,12 @@ function drawScreen() {
             const x = loopX(ax);
             const room = row[ax] || row[x];
             const eRoom = row[ax+1] || row[loopX(ax+1)];
-            let fg = 60;
 
-            if (ay === y && ax === x ||
-                room && (row === floor[ay] && room === row[ax]))
+            let fg = 60;
+            if (ay === y && ax === x)
                 fg = 67;
+            else if (room && (row === floor[ay] && room === row[ax]))
+                fg = 61;
             color(fg);
 
             if (ax === minX) {
@@ -870,10 +872,11 @@ function drawScreenSmall() {
                 );
 
             // Select the colors based on what's here
-            let fg = 67;
-            if ((ay !== y || ax !== x) &&
-                (row !== floor[ay] || room !== row[ax]))
-                fg = 60;
+            let fg = 60;
+            if (ay === y && ax === x)
+                fg = 67;
+            else if (room && (row === floor[ay] && room === row[ax]))
+                fg = 61;
             let bg = 0;
             if (ay === curY && ax === curX)
                 bg += 1;
