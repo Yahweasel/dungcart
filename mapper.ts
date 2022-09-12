@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-const fs = require("fs");
 
-const io = require("./io.js");
+import * as fs from "fs";
+
+import * as io from "./io";
 const { wr } = io;
 
 import type {Room, Row, Floor, Mapp} from "./mapp";
@@ -48,7 +49,7 @@ if (!floor) {
 
 // Character set
 const charSet: Record<string, string> = JSON.parse(
-    fs.readFileSync(process.argv[3] || "charset/lines.json")
+    fs.readFileSync(process.argv[3] || "charset/lines.json", "utf8")
 );
 
 // Flags are just in the session, not in the map (for remembering things)
