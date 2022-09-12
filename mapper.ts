@@ -501,21 +501,15 @@ function drawScreenSmall() {
     const curRoom: Room = curRow[state.curX] || {};
 
     // Figure out our display ranges
-    let maxH = io.termSize.h-4;
+    let maxH = io.termSize.h-5;
     if (maxH < 8) maxH = 8;
     let maxW = io.termSize.w-1;
     if (maxW < 8) maxW = 8;
     let minY, maxY, minX, maxX;
-    {
-        const hh = Math.floor(maxH/2);
-        minY = state.curY - hh;
-        maxY = state.curY + hh - 1;
-    }
-    {
-        const hw = Math.floor(maxW/2);
-        minX = state.curX - hw;
-        maxX = state.curX + hw - 1;
-    }
+    minY = state.curY - Math.floor(maxH/2);
+    maxY = minY + maxH;
+    minX = state.curX - Math.floor(maxW/2);
+    maxX = minX + maxW;
 
     // Draw the floor indicator
     io.reset();
