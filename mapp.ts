@@ -12,6 +12,15 @@ export type Room = Record<string, number> & {
     foot?: number; // Only used temporarily by the printable mapper
 };
 
+// Information on how a floor loops
+export type Loop = {
+    // Each is the loop point (last index before looping) in that direction
+    n?: number;
+    s?: number;
+    e?: number;
+    w?: number;
+}
+
 export type Row = Record<number, Room> & {min: number, max: number};
-export type Floor = Record<number, Row> & {min: number, max: number};
+export type Floor = Record<number, Row> & {min: number, max: number, loop?: Loop};
 export type Mapp = Record<number, Floor>;

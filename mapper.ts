@@ -397,26 +397,21 @@ function main(data: string) {
         case "F": toggleExit(d); save(); break;
 
         case "z": // delete
-            if (curMode !== "r") {
-                delete floor[curY][curX];
-                if (curMode === "p") {
-                    paint();
-                } else {
-                    curMode = "x";
-                }
-                validate();
-                save();
+            delete floor[curY][curX];
+            if (curMode === "p") {
+                paint();
+            } else {
+                curMode = "x";
             }
+            validate();
+            save();
             break;
 
         case "e": // edit note
-            if (curMode !== "r") {
-                editNote();
+            editNote();
 
-                // editNote will resume the main loop itself
-                return;
-            }
-            break;
+            // editNote will resume the main loop itself
+            return;
 
         case "v": // small mode
             smallMode = !smallMode;
@@ -478,6 +473,10 @@ function main(data: string) {
             // oopsMenu will resume the main loop itself
             return;
 
+        case "l": // loop menu
+            loopMenu();
+            return;
+
         // Help
         case "h":
         case "H":
@@ -486,6 +485,10 @@ function main(data: string) {
             help();
             return;
     }
+
+    // Validate the location
+    curY = loopY(curY);
+    curX = loopX(curX);
 
     // Draw the screen
     const curRoom = smallMode ? drawScreenSmall() : drawScreen();
@@ -517,8 +520,8 @@ function main(data: string) {
 
 // Draw the map part of the screen
 function drawScreen() {
-    /* Draw the extra state for this room. Returns true if there was any extra
-     * state to draw. */
+    /* Draw the extra state for this room. Returns true if there was any
+     * extra state to draw. */
     function extraState(room: Room, y: number, x: number): boolean {
         const loc = curZ + "," + y + "," + x;
         const flag = flagsByLoc[loc];
@@ -574,6 +577,7 @@ function drawScreen() {
     const endY = termSize.h - 3;
 
     // Draw the floor
+    const loop = floor.loop || {};
     cursor(false);
     reset();
     cln();
@@ -581,24 +585,31 @@ function drawScreen() {
     color(4);
     wr(`(${curX}, ${-curY})\n`);
     let scY = 1;
-    let prevRow: Row = floor[minY-1] || {min: 0, max: 0};
-    for (let y = minY;; y++) {
-        const row: Row = floor[y] || {min: 0, max: 0};
+    let prevRow: Row = floor[minY-1] || floor[loopY(minY-1)] ||
+        {min: 0, max: 0};
+    for (let ay = minY;; ay++) {
+        const y = loopY(ay);
+        const row: Row = floor[ay] || floor[y] || {min: 0, max: 0};
         let scX = 0;
 
         // North paths first
-        for (let x: number = minX;; x++) {
-            const room = row[x];
-            const nRoom = prevRow[x];
-            const eRoom = row[x+1];
-            const neRoom = prevRow[x+1];
+        for (let ax: number = minX;; ax++) {
+            const x = loopX(ax);
+            const room = row[ax] || row[x];
+            const nRoom = prevRow[ax] || prevRow[x];
+            const eRoom = row[ax+1] || row[loopX(ax+1)];
+            const neRoom = prevRow[ax+1] || prevRow[loopX(ax+1)];
 
-            color();
+            if (ay === y && ax === x ||
+                row === floor[ay] && room === row[ax])
+                color();
+            else
+                color(60);
 
             // NW tile
             if (x === minX) {
-                const wRoom = row[x-1];
-                const nwRoom = prevRow[x-1];
+                const wRoom = row[ax-1] || row[loopX(ax-1)];
+                const nwRoom = prevRow[ax-1] || prevRow[loopX(ax-1)];
                 wc("+" +
                    (nwRoom ? "1" : "") +
                    (nRoom ? "2" : "") +
@@ -652,13 +663,19 @@ function drawScreen() {
         scX = 0;
 
         // Now the row of rooms itself
-        for (let x: number = minX;; x++) {
-            const room = row[x];
-            const eRoom = row[x+1];
+        for (let ax: number = minX;; ax++) {
+            const x = loopX(ax);
+            const room = row[ax] || row[x];
+            const eRoom = row[ax+1] || row[loopX(ax+1)];
+
+            if (ay === y && ax === x ||
+                row === floor[ay] && room === row[ax])
+                color();
+            else
+                color(60);
 
             if (x === minX) {
-                const wRoom = row[x-1];
-                color();
+                const wRoom = row[ax-1] || row[loopX(ax-1)];
                 if (room && room.w) {
                     if (wRoom && wRoom.e)
                         wc(" ");
@@ -694,8 +711,12 @@ function drawScreen() {
                 color();
 
             } else if (extraState(room, y, x)) {
-                // Just fix the color back after the extra state
-                color();
+                // Just fix the color
+                if (ay === y && ax === x ||
+                    row === floor[ay] && room === row[ax])
+                    color();
+                else
+                    color(60);
 
             } else if (room) {
                 wc("_");
@@ -805,11 +826,13 @@ function drawScreenSmall() {
     wr(` (${curX}, ${-curY})\n`);
     color();
 
-    for (let y = minY; y <= maxY; y++) {
-        const row: Row = floor[y] || {min: 0, max: 0};
+    for (let ay = minY; ay <= maxY; ay++) {
+        const y = loopY(ay);
+        const row: Row = floor[ay] || floor[y] || {min: 0, max: 0};
 
-        for (let x: number = minX; x <= maxX; x++) {
-            const room: Room = row[x] || {};
+        for (let ax: number = minX; ax <= maxX; ax++) {
+            const x = loopX(ax);
+            const room: Room = row[ax] || row[x] || {};
 
             const ind =
                 room.n ? (
@@ -838,21 +861,26 @@ function drawScreenSmall() {
                             room.w ? "\u2557" : "\u257b"
                         ) : (
                             room.w ? "\u2578" : (
-                                row[x] ? "\u25a1" : " "
+                                (row[ax] || row[x]) ? "\u25a1" : " "
                             )
                         )
                     )
                 );
 
             // Select the colors based on what's here
+            let fg = 67;
+            if ((ay !== y || ax !== x) &&
+                (row !== floor[ay] || room !== row[ax]))
+                fg = 60;
             let bg = 0;
             if (y === curY && x === curX)
                 bg += 1;
             if (room.a || room.u || room.d)
                 bg += 2;
-            color(67, bg);
+            color(fg, bg);
             wr(ind);
         }
+        color();
         cln();
         wr("\n");
     }
@@ -983,13 +1011,116 @@ q: Cancel.
                 moveX(1, (data === "D"));
                 break;
 
-            case "q":
+            default:
                 clear();
                 main("");
                 break;
         }
     }
     rd(input);
+}
+
+// The loop menu
+function loopMenu() {
+    clear();
+    reset();
+    color();
+    wr(
+`wasd: Set loop point.
+WASD: Rotate rooms within the loop points.
+z: Clear looping data for this floor.
+q: Cancel.
+
+Current loop status: ${JSON.stringify(floor.loop)}
+> `);
+
+    function setLoop(dir: string) {
+        const loop = floor.loop = floor.loop || {};
+        loop[dir] = (dir === "n" || dir === "s") ? curY : curX;
+        if (typeof loop.n === "number" &&
+            typeof loop.s === "number" &&
+            loop.s < loop.n) {
+            const tmp = loop.s;
+            loop.s = loop.n;
+            loop.n = tmp;
+        }
+        if (typeof loop.w === "number" &&
+            typeof loop.e === "number" &&
+            loop.e < loop.w) {
+            const tmp = loop.e;
+            loop.e = loop.w;
+            loop.w = tmp;
+        }
+        validate();
+        save();
+        // FIXME: Resolve loop issues
+        clear();
+        main("");
+    }
+
+    function input(data: string) {
+        switch (data) {
+            case "w":
+                setLoop("n");
+                break;
+
+            case "a":
+                setLoop("w");
+                break;
+
+            case "s":
+                setLoop("s");
+                break;
+
+            case "d":
+                setLoop("e");
+                break;
+
+            case "z":
+                delete floor.loop;
+                validate();
+                save();
+                clear();
+                main("");
+                break;
+
+            default:
+                clear();
+                main("");
+                break;
+        }
+    }
+    rd(input);
+}
+
+// Get a Y location with looping in mind
+function loopY(y: number) {
+    const loop = floor.loop;
+    if (!loop ||
+        typeof loop.n !== "number" ||
+        typeof loop.s !== "number")
+        return y;
+    const len = loop.s - loop.n + 1;
+    while (y < loop.n)
+        y += len;
+    while (y > loop.s)
+        y -= len;
+    return y;
+}
+
+// Get an X location with looping in mind
+function loopX(x: number) {
+    const loop = floor.loop;
+    if (!loop ||
+        typeof loop.w !== "number" ||
+        typeof loop.e !== "number")
+        return x;
+    const len = loop.e - loop.w + 1;
+    while (x < loop.w)
+        x += len;
+    while (x > loop.e)
+        x -= len;
+    return x;
 }
 
 
