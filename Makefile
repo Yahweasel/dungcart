@@ -1,7 +1,8 @@
 JS=\
 	io.js \
 	mapper.js \
-	printable.js
+	printable.js \
+	state.js
 
 all: $(JS)
 	chmod a+x mapper.js
@@ -19,4 +20,4 @@ clean:
 distclean: clean
 	rm -rf node_modules package-lock.json
 
-mapper.ts: io.ts mapp.ts
+mapper.ts: io.ts mapp.ts state.ts

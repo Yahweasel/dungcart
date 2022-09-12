@@ -4,5 +4,6 @@ io.js
 mapp.js
 mapper.js
 printable.js
+state.js
 node_modules
 package-lock.json
