@@ -1017,6 +1017,23 @@ q: Cancel.
 
 // The loop menu
 function loopMenu() {
+    // Get the loop status for display
+    const loopStatus: string[] = [];
+    if (floor.loop) {
+        for (const dir of ["s", "n"]) {
+            const l = floor.loop[dir];
+            if (typeof l === "number")
+                loopStatus.push(dir.toUpperCase() + `: ${-l}`);
+        }
+        for (const dir of ["w", "e"]) {
+            const l = floor.loop[dir];
+            if (typeof l === "number")
+                loopStatus.push(dir.toUpperCase() + `: ${l}`);
+        }
+    }
+    const loopStr = loopStatus.join(", ");
+
+    // Display the menu
     clear();
     reset();
     color();
@@ -1026,7 +1043,7 @@ WASD: Rotate rooms within the loop points.
 z: Clear looping data for this floor.
 q: Cancel.
 
-Current loop status: ${JSON.stringify(floor.loop)}
+Current loop status: ${loopStr || "non-looping"}
 > `);
 
     function setLoop(dir: string) {
