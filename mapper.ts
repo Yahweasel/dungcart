@@ -161,8 +161,12 @@ function move(dir: Direction, dig = false) {
     const room: Room = row[curX] || {};
     let ret = false;
     const nextZ = curZ + dir.z;
-    const nextY = curY + dir.y;
-    const nextX = curX + dir.x;
+    let nextY = curY + dir.y;
+    let nextX = curX + dir.x;
+    if (dig) {
+        nextY = loopY(nextY);
+        nextX = loopX(nextX);
+    }
 
     // Digging up and down is quite different
     if (dir.z !== 0) {
@@ -487,8 +491,10 @@ function main(data: string) {
     }
 
     // Validate the location
-    curY = loopY(curY);
-    curX = loopX(curX);
+    if (curMode !== "r") {
+        curY = loopY(curY);
+        curX = loopX(curX);
+    }
 
     // Draw the screen
     const curRoom = smallMode ? drawScreenSmall() : drawScreen();
@@ -601,13 +607,13 @@ function drawScreen() {
             const neRoom = prevRow[ax+1] || prevRow[loopX(ax+1)];
 
             if (ay === y && ax === x ||
-                row === floor[ay] && room === row[ax])
+                room && (row === floor[ay] && room === row[ax]))
                 color();
             else
                 color(60);
 
             // NW tile
-            if (x === minX) {
+            if (ax === minX) {
                 const wRoom = row[ax-1] || row[loopX(ax-1)];
                 const nwRoom = prevRow[ax-1] || prevRow[loopX(ax-1)];
                 wc("+" +
@@ -642,7 +648,7 @@ function drawScreen() {
                 break;
 
             // If this is where the character is, the NE tile indicates extra state
-            if (y !== curY || x !== curX || !extraState(room, y, x)) {
+            if (ay !== curY || ax !== curX || !extraState(room, y, x)) {
                 wc("+" +
                    (nRoom ? "1" : "") +
                    (neRoom ? "2" : "") +
@@ -667,14 +673,14 @@ function drawScreen() {
             const x = loopX(ax);
             const room = row[ax] || row[x];
             const eRoom = row[ax+1] || row[loopX(ax+1)];
+            let fg = 60;
 
             if (ay === y && ax === x ||
-                row === floor[ay] && room === row[ax])
-                color();
-            else
-                color(60);
+                room && (row === floor[ay] && room === row[ax]))
+                fg = 67;
+            color(fg);
 
-            if (x === minX) {
+            if (ax === minX) {
                 const wRoom = row[ax-1] || row[loopX(ax-1)];
                 if (room && room.w) {
                     if (wRoom && wRoom.e)
@@ -695,7 +701,7 @@ function drawScreen() {
                     break;
             }
 
-            if (y === curY && x === curX) {
+            if (ay === curY && ax === curX) {
                 color(1);
                 // This is our current room, so indicate it
                 curRoom = room || {};
@@ -708,15 +714,11 @@ function drawScreen() {
                     case "w": wr("\u25c2" /* < */); break;
                     default:  wr("\u25cf" /* @ */);
                 }
-                color();
+                color(fg);
 
             } else if (extraState(room, y, x)) {
                 // Just fix the color
-                if (ay === y && ax === x ||
-                    row === floor[ay] && room === row[ax])
-                    color();
-                else
-                    color(60);
+                color(fg);
 
             } else if (room) {
                 wc("_");
@@ -873,7 +875,7 @@ function drawScreenSmall() {
                 (row !== floor[ay] || room !== row[ax]))
                 fg = 60;
             let bg = 0;
-            if (y === curY && x === curX)
+            if (ay === curY && ax === curX)
                 bg += 1;
             if (room.a || room.u || room.d)
                 bg += 2;
@@ -1051,6 +1053,7 @@ Current loop status: ${JSON.stringify(floor.loop)}
             loop.e = loop.w;
             loop.w = tmp;
         }
+        mergeLoop();
         validate();
         save();
         // FIXME: Resolve loop issues
@@ -1121,6 +1124,119 @@ function loopX(x: number) {
     while (x > loop.e)
         x -= len;
     return x;
+}
+
+/* Move an entire room, presumably due to looping, merging it with the target
+ * room to the degree that that's possible. Returns true if the move was
+ * successful. */
+function moveRoom(
+    fromZ: number, fromY: number, fromX: number,
+    toZ: number, toY: number, toX: number
+) {
+    // Find the "from" room
+    const fromFloor = map[fromZ];
+    if (!fromFloor)
+        return false;
+    const fromRow = fromFloor[fromY];
+    if (!fromRow)
+        return false;
+    const fromRoom = fromRow[fromX];
+    if (!fromRoom)
+        return false;
+
+    // Find the "to" row
+    if (!map[toZ]) {
+        const f = map[toZ] = newFloor(toY, toX);
+        // So that it'll merge properly
+        delete map[toZ][toY][toX];
+    }
+    const toFloor = map[toZ];
+    if (!toFloor[toY])
+        toFloor[toY] = {min: toX, max: toX};
+    const toRow = toFloor[toY];
+
+    // If there is no to *room*, this is easy; just move it
+    if (!toRow[toX]) {
+        toRow[toX] = fromRoom;
+        if (toX < toRow.min)
+            toRow.min = toX;
+        if (toX > toRow.max)
+            toRow.max = toX;
+        delete fromRow[fromX];
+        validate();
+        save();
+        return true;
+    }
+
+    function exits(room: Room) {
+        return Object.keys(room)
+            .sort()
+            .filter(x => x != "a" /* handled separately */)
+            .join("");
+    }
+
+    // Otherwise, attempt to merge them
+    const toRoom = toRow[toX];
+    if (exits(fromRoom) !== exits(toRoom)) {
+        // Can't merge, different exits
+        return false;
+    }
+
+    // Exits are the same, so just worry about the note
+    if (fromRoom.a) {
+        if (toRoom.a)
+            toRoom.a += "/" + fromRoom.a;
+        else
+            toRoom.a = fromRoom.a;
+    }
+
+    // Delete the old room, now that it's merged
+    delete fromRow[fromX];
+    validate();
+    save();
+    return true;
+}
+
+// Merge looping rooms on this floor
+function mergeLoop() {
+    const loop = floor.loop;
+    if (!loop)
+        return;
+
+    if (typeof loop.n === "number" &&
+        typeof loop.s === "number") {
+        // Merge Y loops
+        for (let fromY = floor.min; fromY <= floor.max; fromY++) {
+            const fromRow = floor[fromY];
+            if (!fromRow)
+                continue;
+            const toY = loopY(fromY);
+            if (fromY === toY)
+                continue;
+
+            for (let x = fromRow.min; x <= fromRow.max; x++)
+                moveRoom(curZ, fromY, x, curZ, toY, x);
+        }
+    }
+
+    if (typeof loop.w === "number" &&
+        typeof loop.e === "number") {
+        // Merge X loops
+        for (let y = floor.min; y <= floor.max; y++) {
+            const row = floor[y];
+            if (!row)
+                continue;
+
+            for (let fromX = row.min; fromX <= row.max; fromX++) {
+                if (!row[fromX])
+                    continue;
+                const toX = loopX(fromX);
+                if (fromX === toX)
+                    continue;
+                moveRoom(curZ, y, fromX, curZ, y, toX);
+            }
+        }
+    }
 }
 
 
