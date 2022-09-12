@@ -727,7 +727,6 @@ async function loopMenu() {
     io.color();
     wr(
 `wasd: Set loop point.
-WASD: Rotate rooms within the loop points.
 z: Clear looping data for this floor.
 q: Cancel.
 
