@@ -128,18 +128,18 @@ for (let z = minZ; z <= maxZ; z++) {
         wr(`Floor ${z}:\n`);
 
     // Find the full X range
-    let minX = 0, maxX = 0;
+    let minX = Infinity, maxX = -Infinity;
     for (let y = floor.min; y <= floor.max; y++) {
         const row = floor[y];
         if (!row)
             continue;
-        for (let x = row.min; x < minX; x++) {
+        for (let x = row.min; x <= row.max && x < minX; x++) {
             if (row[x]) {
                 minX = x;
                 break;
             }
         }
-        for (let x = row.max; x > maxX; x--) {
+        for (let x = row.max; x >= row.min && x > maxX; x--) {
             if (row[x]) {
                 maxX = x;
                 break;
