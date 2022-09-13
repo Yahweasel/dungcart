@@ -294,19 +294,8 @@ function drawScreen() {
     let curRoom: Room = {};
 
     // Figure out our display ranges
-    let maxH = Math.floor((io.termSize.h-4)/2);
-    if (maxH < 8) maxH = 8;
-    let maxW = Math.floor(io.termSize.w/2);
-    if (maxW < 8) maxW = 8;
-    let minY, minX;
-    {
-        const hh = maxH/2;
-        minY = Math.floor(state.curY - hh);
-    }
-    {
-        const hw = maxW/2;
-        minX = Math.floor(state.curX - hw);
-    }
+    let minY = state.curY - Math.floor((io.termSize.h-4)/4);
+    let minX = state.curX - Math.floor(io.termSize.w/4);
     const endY = io.termSize.h - 3;
 
     // Draw the floor
@@ -501,15 +490,12 @@ function drawScreenSmall() {
     const curRoom: Room = curRow[state.curX] || {};
 
     // Figure out our display ranges
-    let maxH = io.termSize.h-5;
-    if (maxH < 8) maxH = 8;
-    let maxW = io.termSize.w-1;
-    if (maxW < 8) maxW = 8;
-    let minY, maxY, minX, maxX;
-    minY = state.curY - Math.floor(maxH/2);
-    maxY = minY + maxH;
-    minX = state.curX - Math.floor(maxW/2);
-    maxX = minX + maxW;
+    const maxH = io.termSize.h-4;
+    let minY = state.curY - Math.floor(maxH/4)*2 - 1;
+    let maxY = minY + maxH - 1;
+    const maxW = io.termSize.w;
+    let minX = state.curX - Math.floor(maxW/4)*2 - 1;
+    let maxX = minX + maxW - 1;
 
     // Draw the floor indicator
     io.reset();
