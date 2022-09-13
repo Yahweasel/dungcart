@@ -232,6 +232,10 @@ async function main() {
                 break;
             }
 
+            case "u": // Undo
+                state.undo();
+                break;
+
             case "o": // "oops": fix major problems
                 await oopsMenu();
                 break;
@@ -782,6 +786,7 @@ z: Delete room
 o: "Oops" menu: fix major problems
 l: Loop menu, set floor looping parameters
 1-4: Place/unplace flags 1-4
+u: Undo
 q: Quit
 
 Movement: wasd, r = up, f = down

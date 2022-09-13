@@ -26,6 +26,12 @@ export let map: Mapp = {};
 export function setMap(to: Mapp) { map = to; }
 
 /**
+ * The undo buffer for the map.
+ */
+let undoBuffer: string[] = [];
+let undoBufferSize = 0;
+
+/**
  * Current location.
  */
 export let curZ = 1, curY = 0, curX = 0, curDir = n;
@@ -64,10 +70,15 @@ let mapFile: string = null;
 export function loadMap(filename: string) {
     mapFile = filename;
 
+    let mapStr = "{}";
     map = {};
     try {
-        map = JSON.parse(fs.readFileSync(mapFile, "utf8"));
+        mapStr = fs.readFileSync(mapFile, "utf8");
+        map = JSON.parse(mapStr);
     } catch (ex) { 0; }
+
+    undoBuffer = [mapStr];
+    undoBufferSize = mapStr.length;
 
     curZ = 1;
     curX = curY = 0;
@@ -80,10 +91,44 @@ export function loadMap(filename: string) {
 }
 
 /**
- * Save the current map.
+ * Save the current map, including to the undo buffer.
  */
 export function save() {
-    fs.writeFileSync(mapFile, JSON.stringify(map));
+    const mstr = JSON.stringify(map);
+    fs.writeFileSync(mapFile, mstr);
+    undoBuffer.push(mstr);
+    undoBufferSize += mstr.length;
+    while (undoBuffer.length > 16 && undoBufferSize > 16777216) {
+        const pop = undoBuffer.shift();
+        undoBufferSize -= pop.length;
+    }
+}
+
+/**
+ * Undo a change.
+ */
+export function undo() {
+    if (undoBuffer.length <= 0)
+        return false;
+    const pop = undoBuffer.pop();
+    undoBufferSize -= pop.length;
+    const load = undoBuffer.pop();
+
+    // Load this map
+    map = JSON.parse(load);
+    floor = map[curZ];
+    if (!floor) {
+        curZ = 1;
+        floor = map[curZ];
+    }
+    if (!floor) {
+        // No first floor???
+        floor = map[curZ] = newFloor(0, 0);
+        curY = 0;
+        curX = 0;
+    }
+
+    save();
 }
 
 /**
@@ -500,8 +545,6 @@ export function mergeLoop(z?: number) {
     if (!loop)
         return;
 
-    let changed = false;
-
     if (typeof loop.n === "number" &&
         typeof loop.s === "number") {
         // Merge Y loops
@@ -514,7 +557,7 @@ export function mergeLoop(z?: number) {
                 continue;
 
             for (let x = fromRow.min; x <= fromRow.max; x++)
-                changed = moveRoom(curZ, fromY, x, curZ, toY, x) || changed;
+                moveRoom(curZ, fromY, x, curZ, toY, x);
         }
     }
 
@@ -532,14 +575,9 @@ export function mergeLoop(z?: number) {
                 const toX = loopX(fromX);
                 if (fromX === toX)
                     continue;
-                changed = moveRoom(curZ, y, fromX, curZ, y, toX) || changed;
+                moveRoom(curZ, y, fromX, curZ, y, toX);
             }
         }
-    }
-
-    if (changed) {
-        validate();
-        save();
     }
 }
 
