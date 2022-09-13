@@ -437,13 +437,13 @@ function drawScreen() {
                 // This is our current room, so indicate it
                 curRoom = room || {};
                 if (state.curMode === "r" || state.curMode === "p")
-                    wr("\u25cf" /* @ */);
+                    wc("@");
                 else switch (state.curDir.k) {
-                    case "n": wr("\u25b4" /* ^ */); break;
-                    case "e": wr("\u25b8" /* > */); break;
-                    case "s": wr("\u25be" /* v */); break;
-                    case "w": wr("\u25c2" /* < */); break;
-                    default:  wr("\u25cf" /* @ */);
+                    case "n": wc("^"); break;
+                    case "e": wc(">"); break;
+                    case "s": wc("v"); break;
+                    case "w": wc("<"); break;
+                    default:  wc("@");
                 }
                 io.color(fg);
 
