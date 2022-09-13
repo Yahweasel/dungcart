@@ -108,7 +108,7 @@ export function save() {
  * Undo a change.
  */
 export function undo() {
-    if (undoBuffer.length <= 0)
+    if (undoBuffer.length <= 1)
         return false;
     const pop = undoBuffer.pop();
     undoBufferSize -= pop.length;
