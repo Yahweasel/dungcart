@@ -10,7 +10,7 @@ CHARSET="charset/lines.json"
 while true
 do
     clear
-    /usr/bin/printf '\x1b[m\x1b[97m\x1b]2;Dung Heap mapper\x07Current maps: '
+    /usr/bin/printf '\x1b[m\x1b[97m\x1b]2;Dung Cart mapper\x07Current maps: '
     ls *.map 2> /dev/null | sed 's/\.map//' | fmt -w 1000
 
     printf '\n'
