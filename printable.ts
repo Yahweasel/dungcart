@@ -1,10 +1,27 @@
 #!/usr/bin/env node
-const fs = require("fs");
+/*
+ * Copyright (C) 2022 Yahweasel
+ *
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. 
+ */
+
+import * as fs from "fs";
+import * as path from "path";
 
 import type {Room, Row, Floor, Mapp} from "./mapp";
 
-if (process.argv.length < 4) {
-    console.error("Use: printable.js <map file> <character set>");
+if (process.argv.length < 3) {
+    console.error("Use: printable.js <map file> [character set]");
     process.exit(1);
 }
 
@@ -13,9 +30,27 @@ const map: Mapp = JSON.parse(
 );
 let minZ = 1, maxZ = 1;
 
-// Different modes for different types of printing
+// Find the character set file
+const charSetFile = (() => {
+    const base = process.argv[3] || "charset/lines.json";
+    const bindir = path.dirname(process.argv[1]);
+    let f = base;
+    for (const dir of [
+        ".", bindir, `${bindir}/../dung-cart`, `${bindir}/../share/dung-cart`,
+        "."
+    ]) {
+        f = `${dir}/${base}`;
+        try {
+            fs.accessSync(f);
+            break;
+        } catch (ex) {}
+    }
+    return f;
+})();
+
+// Load the character set
 const charSet: Record<string, string> = JSON.parse(
-    fs.readFileSync(process.argv[3], "utf8")
+    fs.readFileSync(charSetFile, "utf8")
 );
 
 function wr(str: string) {
