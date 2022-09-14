@@ -32,7 +32,8 @@ let minZ = 1, maxZ = 1;
 
 // Find the character set file
 const charSetFile = (() => {
-    const base = process.argv[3] || "charset/lines.json";
+    const charset = process.argv[3] || "lines";
+    const base = `charset/${charset}.json`;
     const bindir = path.dirname(process.argv[1]);
     let f = base;
     for (const dir of [

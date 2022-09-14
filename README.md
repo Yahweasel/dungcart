@@ -38,5 +38,5 @@ transcribed into printable text files, using `dung-cart-printable <map file>`
 
 The main character set uses box drawing characters available on most terminals.
 If your terminal is more limited, or you'd just like to make the map look a bit
-different, other character sets are available: `charset/ascii.json`,
-`charset/ascii-plus.json`, and `charset/blocks.json`.
+different, other character sets are available: `ascii`, `ascii-plus`, and
+`blocks`.

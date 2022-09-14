@@ -6,7 +6,7 @@ then
     MAPPER="$BINDIR/mapper.js"
 fi
 
-CHARSET="charset/lines.json"
+CHARSET=lines
 while true
 do
     clear
@@ -18,7 +18,7 @@ do
 
     if expr "$MAP" : 'charset/' > /dev/null 2>&1
     then
-        CHARSET="$MAP.json"
+        CHARSET=$(basename "$MAP")
     else
         "$MAPPER" "$MAP".map "$CHARSET"
     fi
