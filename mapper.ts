@@ -295,7 +295,7 @@ function drawScreen() {
     /* Draw the extra state for this room. Returns true if there was any
      * extra state to draw. */
     function extraState(room: Room, y: number, x: number): boolean {
-        const loc = `${state.curZ},${state.curY},${state.curX}`;
+        const loc = `${state.curZ},${y},${x}`;
         const flag = flagsByLoc[loc];
         if (room && (room.a || flag || room.u || room.d)) {
             if ((room.a || flag) && (room.u || room.d)) {
