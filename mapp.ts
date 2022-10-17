@@ -25,6 +25,7 @@ export type Room = Record<string, number> & {
     d?: number;
     t?: number; // Indicates that down is a trap
     a?: string; // Note
+    c?: number; // Color
     foot?: number; // Only used temporarily by the printable mapper
 };
 

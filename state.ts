@@ -60,8 +60,10 @@ export function setCurDir(to: Direction) { curDir = to; }
  * Current mode.
  */
 export let curMode = "x", explDig = false;
+export let curColor = 0;
 export function setCurMode(to: string) { curMode = to; }
 export function setExplDig(to: boolean) { explDig = to; }
+export function setCurColor(to: number) { curColor = to; }
 
 /**
  * Display in small mode?
@@ -307,6 +309,10 @@ export function move(dir: Direction, dig = false) {
             room[dir.k] = 1;
             nextRoom[rotate(dir, 2).k] = 1;
         }
+
+        // Set its color
+        if (curColor)
+            nextRoom.c = curColor;
     }
 
     return ret;
@@ -369,6 +375,21 @@ export function paint() {
 export function movePaint(dir: Direction) {
     move(dir, true);
     paint();
+    save();
+}
+
+/**
+ * Recolor the current room.
+ */
+export function recolor() {
+    const curRow = floor[curY];
+    if (!curRow) return;
+    const curRoom = curRow[curX];
+    if (!curRoom) return;
+    if (curColor)
+        curRoom.c = curColor;
+    else
+        delete curRoom.c;
     save();
 }
 

@@ -267,6 +267,42 @@ async function main() {
                 break;
             }
 
+            case "!": // shift+1
+                state.setCurColor(1);
+                break;
+
+            case "@": // shift+2
+                state.setCurColor(2);
+                break;
+
+            case "#": // shift+3
+                state.setCurColor(3);
+                break;
+
+            case "$": // shift+4
+                state.setCurColor(4);
+                break;
+
+            case "%": // shift+5
+                state.setCurColor(5);
+                break;
+
+            case "^": // shift+6
+                state.setCurColor(6);
+                break;
+
+            case "&": // shift+7
+                state.setCurColor(60);
+                break;
+
+            case ")": // shift+0
+                state.setCurColor(0);
+                break;
+
+            case "c": // Color this node
+                state.recolor();
+                break;
+
             case "u": // Undo
                 state.undo();
                 break;
@@ -298,7 +334,10 @@ function drawScreen() {
         const loc = `${state.curZ},${y},${x}`;
         const flag = flagsByLoc[loc];
         if (room && (room.a || flag || room.u || room.d)) {
-            if ((room.a || flag) && (room.u || room.d)) {
+            if (room.c) {
+                // Overridden color
+                io.color(room.c, 2);
+            } else if ((room.a || flag) && (room.u || room.d)) {
                 // Show the note with color instead of text
                 io.color(62, 2);
             } else if (flag) {
@@ -306,6 +345,8 @@ function drawScreen() {
             } else {
                 io.color(62, 0);
             }
+        } else if (room && room.c) {
+            io.color(room.c);
         }
         if (room && room.t) {
             wc("t");
@@ -480,7 +521,9 @@ function drawScreen() {
                 io.color(fg);
 
             } else if (room) {
+                io.color(room.c || 67);
                 wc("_");
+                io.color(fg);
 
             } else {
                 wc(".");
@@ -630,6 +673,8 @@ function drawScreenSmall() {
                 bg += 1;
             if (room.a || room.u || room.d)
                 bg += 2;
+            if (room.c && (ay !== state.curY || ax !== state.curX))
+                bg = room.c;
             io.color(fg, bg);
             wr(ind);
         }
