@@ -303,7 +303,7 @@ for (let z = minZ; z <= maxZ; z++) {
             wc("+" + (room ? "2" : ""));
 
         if (room && room.s)
-            wr("v");
+            wc("v");
         else
             wc("+" + (room ? "12n" : ""));
 
