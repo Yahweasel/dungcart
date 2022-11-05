@@ -77,8 +77,13 @@ async function main() {
         // Write anything about the current room
         io.cln();
         io.color();
-        if (curRoom.a)
-            wr("Note: " + curRoom.a);
+        if (curRoom.a) {
+            const msg = `Note: ${curRoom.a}`;
+            const lines = Math.ceil(msg.length / io.termSize.w);
+            if (lines > 1)
+                wr(`\x1b[${lines-1}A`);
+            wr(msg);
+        }
         wr("\n");
 
         // And the current mode
