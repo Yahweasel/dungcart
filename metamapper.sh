@@ -20,6 +20,6 @@ do
     then
         CHARSET=$(basename "$MAP")
     else
-        "$MAPPER" "$MAP".map "$CHARSET"
+        "$MAPPER" "$MAP".map -c "$CHARSET"
     fi
 done

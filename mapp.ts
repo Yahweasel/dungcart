@@ -21,6 +21,10 @@ export type Room = Record<string, number> & {
     s?: number;
     e?: number;
     w?: number;
+    ne?: number;
+    se?: number;
+    sw?: number;
+    nw?: number;
     u?: number;
     d?: number;
     t?: number; // Indicates that down is a trap

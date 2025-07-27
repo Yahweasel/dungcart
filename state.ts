@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Yahweasel
+ * Copyright (C) 2022-2025 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -32,6 +32,10 @@ export const
     s: Direction = {k: "s", x: 0, y: 1, z: 0},
     w: Direction = {k: "w", x: -1, y: 0, z: 0},
     e: Direction = {k: "e", x: 1, y: 0, z: 0},
+    ne: Direction = {k: "ne", x: 1, y: -1, z: 0},
+    se: Direction = {k: "se", x: 1, y: 1, z: 0},
+    sw: Direction = {k: "sw", x: -1, y: 1, z: 0},
+    nw: Direction = {k: "nw", x: -1, y: -1, z: 0},
     u: Direction = {k: "u", x: 0, y: 0, z: -1},
     d: Direction = {k: "d", x: 0, y: 0, z: 1};
 
@@ -46,6 +50,12 @@ export function setMap(to: Mapp) { map = to; }
  */
 let undoBuffer: string[] = [];
 let undoBufferSize = 0;
+
+/**
+ * Eight-direction mode.
+ */
+export let eight = false;
+export function setEight(to: boolean) { eight = to; }
 
 /**
  * Current location.
@@ -80,7 +90,7 @@ export function setFloor(to: Floor) { floor = to; }
 /**
  * Current map file.
  */
-let mapFile: string = null;
+let mapFile: string | null = null;
 
 /**
  * Load a map.
@@ -113,12 +123,12 @@ export function loadMap(filename: string) {
  */
 export function save() {
     const mstr = JSON.stringify(map);
-    fs.writeFileSync(mapFile, mstr);
+    fs.writeFileSync(mapFile!, mstr);
     undoBuffer.push(mstr);
     undoBufferSize += mstr.length;
     while (undoBuffer.length > 16 && undoBufferSize > 16777216) {
         const pop = undoBuffer.shift();
-        undoBufferSize -= pop.length;
+        undoBufferSize -= pop!.length;
     }
 }
 
@@ -129,11 +139,11 @@ export function undo() {
     if (undoBuffer.length <= 1)
         return false;
     const pop = undoBuffer.pop();
-    undoBufferSize -= pop.length;
+    undoBufferSize -= pop!.length;
     const load = undoBuffer.pop();
 
     // Load this map
-    map = JSON.parse(load);
+    map = JSON.parse(load!);
     floor = map[curZ];
     if (!floor) {
         curZ = 1;
@@ -159,26 +169,52 @@ export function rotate(dir: Direction, by: number) {
 
         case 1:
         case -3:
-            if (dir === n) return e;
-            if (dir === e) return s;
-            if (dir === s) return w;
-            if (dir === w) return n;
+            if (eight) {
+                if (dir === n) return ne;
+                if (dir === ne) return e;
+                if (dir === e) return se;
+                if (dir === se) return s;
+                if (dir === s) return sw;
+                if (dir === sw) return w;
+                if (dir === w) return nw;
+                if (dir === nw) return n;
+            } else {
+                if (dir === n) return e;
+                if (dir === e) return s;
+                if (dir === s) return w;
+                if (dir === w) return n;
+            }
             return n;
 
         case 2:
         case -2:
             if (dir === n) return s;
+            if (dir === ne) return sw;
             if (dir === e) return w;
+            if (dir === se) return nw;
             if (dir === s) return n;
+            if (dir === sw) return ne;
             if (dir === w) return e;
+            if (dir === nw) return se;
             return n;
 
         case 3:
         case -1:
-            if (dir === n) return w;
-            if (dir === e) return n;
-            if (dir === s) return e;
-            if (dir === w) return s;
+            if (eight) {
+                if (dir === n) return nw;
+                if (dir === ne) return n;
+                if (dir === e) return ne;
+                if (dir === se) return e;
+                if (dir === s) return se;
+                if (dir === sw) return s;
+                if (dir === w) return sw;
+                if (dir === nw) return w;
+            } else {
+                if (dir === n) return w;
+                if (dir === e) return n;
+                if (dir === s) return e;
+                if (dir === w) return s;
+            }
             return n;
     }
     return n;
@@ -516,7 +552,7 @@ export function moveRoom(
 
     // Find the "to" row
     if (!map[toZ]) {
-        const f = map[toZ] = newFloor(toY, toX);
+        map[toZ] = newFloor(toY, toX);
         // So that it'll merge properly
         delete map[toZ][toY][toX];
     }

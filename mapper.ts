@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * Copyright (C) 2022 Yahweasel
+ * Copyright (C) 2022-2025 Yahweasel
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -24,15 +24,43 @@ import * as state from "./state";
 
 import type {Room, Row, Floor, Mapp} from "./mapp";
 
-if (process.argv.length < 3) {
-    console.error("Use: mapper.js <map file> [character set]");
+function usage() {
+    console.error(
+        `Use: mapper.js [options] <map file>\n` +
+        `Options:\n` +
+        `  -c|--charset <charset>: Set the character set. See charset directory.\n` +
+        `  -8|--eight: Use eight-direction mode.\n`
+    );
+}
+
+let mapFile: string | undefined;
+let charSetName = "lines";
+for (let ai = 2; ai < process.argv.length; ai++) {
+    const arg = process.argv[ai];
+    if (arg[0] == "-") {
+        if (arg === "-8" || arg === "--eight") {
+            state.setEight(true);
+        } else if (arg === "-c" || arg === "--charset") {
+            charSetName = process.argv[++ai];
+        } else {
+            usage();
+            process.exit(1);
+        }
+    } else if (mapFile) {
+        usage();
+        process.exit(1);
+    } else {
+        mapFile = arg;
+    }
+}
+if (!mapFile) {
+    usage();
     process.exit(1);
 }
 
 // Find the character set file
 const charSetFile = (() => {
-    const charset = process.argv[3] || "lines";
-    const base = `charset/${charset}.json`;
+    const base = `charset/${charSetName}.json`;
     const bindir = path.dirname(process.argv[1]);
     let f = base;
     for (const dir of [
@@ -99,6 +127,8 @@ async function main() {
 
         // And request input
         io.clr();
+        if (state.eight)
+            wr("8");
         wr("> ");
         io.cursor(true);
         const data = await io.rd();
@@ -320,6 +350,11 @@ async function main() {
                 await loopMenu();
                 break;
 
+            case "8": // turn on or off eight-direction mode
+                state.setEight(!state.eight);
+                state.setCurDir(state.n);
+                break;
+
             // Help
             case "h":
             case "H":
@@ -418,15 +453,26 @@ function drawScreen() {
             if (ax === minX) {
                 const wRoom = row[ax-1] || row[state.loopX(ax-1)];
                 const nwRoom = prevRow[ax-1] || prevRow[state.loopX(ax-1)];
-                wc("+" +
-                   (nwRoom ? "1" : "") +
-                   (nRoom ? "2" : "") +
-                   (wRoom ? "3" : "") +
-                   (room ? "4" : "") +
-                   ((nwRoom && nwRoom.e && nRoom && nRoom.w) ? "n" : "") +
-                   ((nRoom && nRoom.s && room && room.n) ? "e" : "") +
-                   ((room && room.w && wRoom && wRoom.e) ? "s" : "") +
-                   ((wRoom && wRoom.n && nwRoom && nwRoom.s) ? "w" : ""));
+                let eight = state.eight;
+                if (eight) {
+                    if ((!room || !room.nw) && (!nwRoom || !nwRoom.se))
+                        eight = false;
+                }
+                if (!eight) {
+                    wc("+" +
+                       (nwRoom ? "1" : "") +
+                       (nRoom ? "2" : "") +
+                       (wRoom ? "3" : "") +
+                       (room ? "4" : "") +
+                       ((nwRoom && nwRoom.e && nRoom && nRoom.w) ? "n" : "") +
+                       ((nRoom && nRoom.s && room && room.n) ? "e" : "") +
+                       ((room && room.w && wRoom && wRoom.e) ? "s" : "") +
+                       ((wRoom && wRoom.n && nwRoom && nwRoom.s) ? "w" : ""));
+                } else {
+                    wc("+" +
+                       ((nwRoom && nwRoom.se) ? "↘" : "") +
+                       ((room && room.nw) ? "↖" : ""));
+                }
                 if (++scX >= io.termSize.w)
                     break;
             }
@@ -453,15 +499,26 @@ function drawScreen() {
              * extra state */
             if (ay !== state.curY || ax !== state.curX ||
                 !extraState(room, y, x)) {
-                wc("+" +
-                   (nRoom ? "1" : "") +
-                   (neRoom ? "2" : "") +
-                   (room ? "3" : "") +
-                   (eRoom ? "4" : "") +
-                   ((nRoom && nRoom.e && neRoom && neRoom.w) ? "n" : "") +
-                   ((neRoom && neRoom.s && eRoom && eRoom.n) ? "e" : "") +
-                   ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
-                   ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
+                let eight = state.eight;
+                if (eight) {
+                    if ((!room || !room.ne) && (!neRoom || !neRoom.sw))
+                        eight = false;
+                }
+                if (!eight) {
+                    wc("+" +
+                       (nRoom ? "1" : "") +
+                       (neRoom ? "2" : "") +
+                       (room ? "3" : "") +
+                       (eRoom ? "4" : "") +
+                       ((nRoom && nRoom.e && neRoom && neRoom.w) ? "n" : "") +
+                       ((neRoom && neRoom.s && eRoom && eRoom.n) ? "e" : "") +
+                       ((eRoom && eRoom.w && room && room.e) ? "s" : "") +
+                       ((room && room.n && nRoom && nRoom.s) ? "w" : ""));
+                } else {
+                    wc("+" +
+                       ((room && room.ne) ? "↗" : "") +
+                       ((neRoom && neRoom.sw) ? "↙" : ""));
+                }
             }
             if (++scX >= io.termSize.w)
                 break;
@@ -514,9 +571,13 @@ function drawScreen() {
                     wc("@");
                 else switch (state.curDir.k) {
                     case "n": wc("^"); break;
+                    case "ne": wc("↗"); break;
                     case "e": wc(">"); break;
+                    case "se": wc("↘"); break;
                     case "s": wc("v"); break;
+                    case "sw": wc("↙"); break;
                     case "w": wc("<"); break;
+                    case "nw": wc("↖"); break;
                     default:  wc("@");
                 }
                 io.color(fg);
@@ -724,7 +785,7 @@ async function editNote() {
             process.exit(0);
 
         } else {
-            wr(data);
+            wr(data + "");
             note += data;
 
         }
@@ -885,5 +946,5 @@ Shift+wasdrf: Digs exits\n`);
     await io.rd();
 }
 
-state.loadMap(process.argv[2]);
+state.loadMap(mapFile);
 main();
